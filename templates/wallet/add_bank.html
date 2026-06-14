@@ -1,0 +1,219 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Add Bank Details - Color Prediction{% endblock %}
+
+{% block content %}
+<div style="display: none;">{% csrf_token %}</div>
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'withdraw' %}" class="back-btn">←</a>
+            <span class="page-title">Add Bank Details</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Bank Information</span>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">UPI ID</label>
+                    <input type="text" id="upi_id" class="form-control" placeholder="example@upi">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bank Name</label>
+                    <input type="text" id="bank_name" class="form-control" placeholder="e.g., HDFC Bank">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Account Holder Name</label>
+                    <input type="text" id="account_holder_name" class="form-control" placeholder="Name as per bank">
+                </div>
+                <button class="btn btn-primary btn-block" onclick="submitBankDetails()">
+                    Submit for Verification
+                </button>
+            </div>
+        </div>
+
+        <div class="info-box mt-3">
+            <div class="info-icon">ℹ️</div>
+            <div class="info-content">
+                <div class="info-title">Important</div>
+                <div class="info-text">
+                    Please ensure all details are correct. Your bank details will be verified by our team before you can withdraw funds.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item active">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.info-box {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: rgba(108, 99, 255, 0.1);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(108, 99, 255, 0.2);
+}
+
+.info-icon {
+    font-size: 1.5rem;
+}
+
+.info-content {
+    flex: 1;
+}
+
+.info-title {
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.info-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+
+<script>
+function submitBankDetails() {
+    const upi_id = document.getElementById('upi_id').value.trim();
+    const bank_name = document.getElementById('bank_name').value.trim();
+    const account_holder_name = document.getElementById('account_holder_name').value.trim();
+
+    if (!upi_id || !bank_name || !account_holder_name) {
+        alert('Please fill all fields');
+        return;
+    }
+
+    fetch('{% url "add_bank" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            upi_id: upi_id,
+            bank_name: bank_name,
+            account_holder_name: account_holder_name
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Bank details submitted for verification!');
+            window.location.href = '{% url "withdraw" %}';
+        } else {
+            alert(data.error || 'Failed to add bank details');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Failed to add bank details');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

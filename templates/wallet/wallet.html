@@ -1,0 +1,549 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Wallet - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'game_home' %}" class="back-btn">←</a>
+            <span class="page-title">My Account</span>
+        </div>
+        <div class="header-right">
+            <a href="{% url 'logout' %}" class="logout-btn" onclick="return confirm('Logout se bahar jaana hai?')">
+                🚪 Logout
+            </a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Profile Section -->
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {{ user.name|first|upper }}
+            </div>
+            <div class="profile-info">
+                <div class="profile-name">
+                    {{ user.name }}
+                    <span class="vip-badge">VIP</span>
+                </div>
+                <div class="profile-uid">
+                    UID: {{ user.uid }}
+                    <button class="copy-uid-btn" onclick="copyUID()">📋</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallet Card -->
+        <div class="wallet-card">
+            <div class="wallet-label">Total Balance</div>
+            <div class="wallet-balance">₹{{ wallet.get_total_balance|default:"0.00" }}</div>
+            <div class="wallet-details">
+                <div class="wallet-detail">
+                    <span class="detail-label">Main Balance</span>
+                    <span class="detail-value">₹{{ wallet.deposit_balance|default:"0.00" }}</span>
+                </div>
+                <div class="wallet-detail">
+                    <span class="detail-label">Winning</span>
+                    <span class="detail-value">₹{{ wallet.winning_balance|default:"0.00" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="wallet-actions" style="margin-bottom: var(--spacing-lg);">
+            <a href="{% url 'recharge' %}" class="wallet-btn">
+                <span class="wallet-btn-icon">💳</span>
+                <span>Deposit</span>
+            </a>
+            <a href="{% url 'withdraw' %}" class="wallet-btn">
+                <span class="wallet-btn-icon">💵</span>
+                <span>Withdraw</span>
+            </a>
+        </div>
+
+        <!-- Feature Grid -->
+        <div class="feature-grid">
+            <a href="{% url 'my_bets' %}" class="feature-box">
+                <div class="feature-icon primary">📊</div>
+                <div class="feature-text">
+                    <div class="feature-title">Game History</div>
+                    <div class="feature-subtitle">View your bets</div>
+                </div>
+            </a>
+            <a href="{% url 'unified_history' %}" class="feature-box">
+                <div class="feature-icon success">📋</div>
+                <div class="feature-text">
+                    <div class="feature-title">All History</div>
+                    <div class="feature-subtitle">Deposit & Withdraw</div>
+                </div>
+            </a>
+            <a href="{% url 'recharge' %}" class="feature-box">
+                <div class="feature-icon warning">💳</div>
+                <div class="feature-text">
+                    <div class="feature-title">Deposit Now</div>
+                    <div class="feature-subtitle">Add money</div>
+                </div>
+            </a>
+            <a href="{% url 'withdraw' %}" class="feature-box">
+                <div class="feature-icon danger">💵</div>
+                <div class="feature-text">
+                    <div class="feature-title">Withdraw</div>
+                    <div class="feature-subtitle">Cash out winnings</div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Referral Section -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Referral Program</span>
+                <a href="{% url 'referral_dashboard' %}" class="text-primary">View All</a>
+            </div>
+            <div class="stats-grid" style="margin: 0;">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_referrals }}</div>
+                    <div class="stat-label">Total Referrals</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">₹{{ total_commission|default:"0.00" }}</div>
+                    <div class="stat-label">Total Commission</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Recent Transactions</span>
+                <a href="{% url 'transaction_history' %}" class="text-primary">View All</a>
+            </div>
+            {% if transactions %}
+                <div class="transaction-list">
+                    {% for tx in transactions %}
+                    <div class="transaction-item">
+                        <div class="tx-icon {% if tx.amount > 0 %}positive{% else %}negative{% endif %}">
+                            {% if tx.transaction_type == 'recharge' %}💳
+                            {% elif tx.transaction_type == 'withdraw' %}💵
+                            {% elif tx.transaction_type == 'win' %}🎉
+                            {% elif tx.transaction_type == 'bet' %}📝
+                            {% else %}💰{% endif %}
+                        </div>
+                        <div class="tx-info">
+                            <div class="tx-title">{{ tx.get_transaction_type_display }}</div>
+                            <div class="tx-date">{{ tx.created_at|date:"M d, Y H:i" }}</div>
+                        </div>
+                        <div class="tx-amount {% if tx.transaction_type in 'win,referral_bonus,signup_bonus' %}positive{% else %}negative{% endif %}">
+                            {% if tx.transaction_type in 'win,referral_bonus,signup_bonus' %}+{% endif %}₹{{ tx.amount }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-title">No transactions yet</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Logout Card -->
+        <div class="card mt-3" style="border: 1px solid rgba(255, 23, 68, 0.2); background: rgba(255, 23, 68, 0.03); margin-bottom: var(--spacing-xl);">
+            <div class="card-body" style="padding: var(--spacing-md);">
+                <a href="{% url 'logout' %}" onclick="return confirm('Do you want to logout?')" style="background: var(--color-red); border-color: var(--color-red); color: white; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; padding: 12px; border-radius: var(--radius-md); text-decoration: none; transition: all var(--transition-fast);">
+                    🚪 Log Out Account
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item active">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px;
+    background: rgba(255, 23, 68, 0.15);
+    border: 1px solid rgba(255, 23, 68, 0.3);
+    border-radius: var(--radius-md);
+    color: var(--color-red);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.logout-btn:hover {
+    background: rgba(255, 23, 68, 0.25);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+.profile-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.vip-badge {
+    font-size: 0.6rem;
+    background: linear-gradient(135deg, #FFB800, #FF6B00);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.profile-uid {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: var(--spacing-xs);
+}
+
+.copy-uid-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.wallet-card {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    color: white;
+    margin-bottom: var(--spacing-lg);
+}
+
+.wallet-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+.wallet-balance {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: var(--spacing-sm) 0;
+}
+
+.wallet-details {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+}
+
+.wallet-detail {
+    flex: 1;
+    text-align: center;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    display: block;
+}
+
+.detail-value {
+    font-size: 1rem;
+    font-weight: 600;
+    display: block;
+    margin-top: var(--spacing-xs);
+}
+
+.wallet-actions {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.wallet-btn {
+    flex: 1;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-lg);
+    color: white;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-weight: 600;
+    transition: all var(--transition-normal);
+}
+
+.wallet-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.wallet-btn-icon {
+    font-size: 1.5rem;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.feature-box {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    text-decoration: none;
+    transition: all var(--transition-normal);
+}
+
+.feature-box:hover {
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+}
+
+.feature-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.feature-icon.primary { background: rgba(108, 99, 255, 0.2); }
+.feature-icon.success { background: rgba(0, 200, 83, 0.2); }
+.feature-icon.danger { background: rgba(255, 23, 68, 0.2); }
+.feature-icon.warning { background: rgba(255, 184, 0, 0.2); }
+
+.feature-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.feature-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.stat-card {
+    text-align: center;
+    padding: var(--spacing-md);
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+.transaction-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tx-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: var(--bg-secondary);
+}
+
+.tx-info {
+    flex: 1;
+}
+
+.tx-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.tx-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+.tx-amount {
+    font-weight: 700;
+}
+
+.tx-amount.positive {
+    color: var(--color-green);
+}
+
+.tx-amount.negative {
+    color: var(--color-red);
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+
+<script>
+function copyUID() {
+    const uid = '{{ user.uid }}';
+    navigator.clipboard.writeText(uid).then(() => {
+        alert('UID copied: ' + uid);
+    });
+}
+</script>
+{% endblock %}

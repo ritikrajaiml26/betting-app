@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Dashboard{% endblock %} - Color Prediction</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #6C63FF;
+            --primary-dark: #5A52E0;
+            --secondary: #00D4AA;
+            --dark-bg: #0B0B14;
+            --card-bg: #14142B;
+            --sidebar-bg: #0F0F23;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #F4F4F6;
+            --text-secondary: #9E9EBA;
+            --color-green: #00C853;
+            --color-red: #FF1744;
+            --color-violet: #AA00FF;
+            --color-warning: #FFB800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-brand {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-logo {
+            font-size: 1.8rem;
+        }
+
+        .brand-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .menu-item a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .menu-item a:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+        }
+
+        .menu-item.active a {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(108, 99, 255, 0.35);
+        }
+
+        .sidebar-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 23, 68, 0.1);
+            border: 1px solid rgba(255, 23, 68, 0.3);
+            border-radius: 12px;
+            color: var(--color-red);
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 23, 68, 0.2);
+        }
+
+        /* Main Content wrapper */
+        .main-wrapper {
+            margin-left: 260px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Top Header */
+        .admin-header {
+            height: 70px;
+            background-color: rgba(20, 20, 43, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+
+        .header-title h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .header-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .profile-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .profile-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .profile-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        /* Content Container */
+        .content-container {
+            padding: 32px;
+            flex: 1;
+        }
+
+        /* Common Components */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: var(--color-green);
+            color: white;
+        }
+
+        .btn-success:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background-color: var(--color-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-block {
+            display: flex;
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+        }
+
+        /* Tables */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .table th {
+            padding: 14px 16px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        .table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-pending {
+            background-color: rgba(255, 184, 0, 0.15);
+            color: var(--color-warning);
+        }
+
+        .badge-processing {
+            background-color: rgba(108, 99, 255, 0.15);
+            color: var(--primary);
+        }
+
+        .badge-success {
+            background-color: rgba(0, 200, 83, 0.15);
+            color: var(--color-green);
+        }
+
+        .badge-danger {
+            background-color: rgba(255, 23, 68, 0.15);
+            color: var(--color-red);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .alert-success {
+            background-color: rgba(0, 200, 83, 0.1);
+            border: 1px solid rgba(0, 200, 83, 0.2);
+            color: var(--color-green);
+        }
+
+        .alert-warning {
+            background-color: rgba(255, 184, 0, 0.1);
+            border: 1px solid rgba(255, 184, 0, 0.2);
+            color: var(--color-warning);
+        }
+
+        .alert-danger {
+            background-color: rgba(255, 23, 68, 0.1);
+            border: 1px solid rgba(255, 23, 68, 0.2);
+            color: var(--color-red);
+        }
+
+        .alert-info {
+            background-color: rgba(108, 99, 255, 0.1);
+            border: 1px solid rgba(108, 99, 255, 0.2);
+            color: var(--primary);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-icon.primary {
+            background-color: rgba(108, 99, 255, 0.1);
+            color: var(--primary);
+            border-color: rgba(108, 99, 255, 0.2);
+        }
+
+        .stat-icon.success {
+            background-color: rgba(0, 200, 83, 0.1);
+            color: var(--color-green);
+            border-color: rgba(0, 200, 83, 0.2);
+        }
+
+        .stat-icon.danger {
+            background-color: rgba(255, 23, 68, 0.1);
+            color: var(--color-red);
+            border-color: rgba(255, 23, 68, 0.2);
+        }
+
+        .stat-icon.warning {
+            background-color: rgba(255, 184, 0, 0.1);
+            color: var(--color-warning);
+            border-color: rgba(255, 184, 0, 0.2);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <span class="brand-logo">🎮</span>
+            <span class="brand-text">Admin Panel</span>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="menu-item {% block nav_dashboard %}{% endblock %}">
+                <a href="{% url 'admin_dashboard' %}">📊 Overview</a>
+            </li>
+            <li class="menu-item {% block nav_users %}{% endblock %}">
+                <a href="{% url 'admin_users' %}">👤 Users List</a>
+            </li>
+            <li class="menu-item {% block nav_recharges %}{% endblock %}">
+                <a href="{% url 'admin_recharges' %}">💳 Recharges</a>
+            </li>
+            <li class="menu-item {% block nav_withdraws %}{% endblock %}">
+                <a href="{% url 'admin_withdraws' %}">💵 Withdrawals</a>
+            </li>
+            <li class="menu-item {% block nav_game %}{% endblock %}">
+                <a href="{% url 'admin_game_control' %}">⚙️ Game Control</a>
+            </li>
+            <li class="menu-item {% block nav_payment %}{% endblock %}">
+                <a href="{% url 'admin_payment_settings' %}">💳 Payment Settings</a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'game_home' %}" target="_blank">🎮 User View</a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="{% url 'logout' %}" class="logout-btn" onclick="return confirm('Do you want to logout from admin panel?')">
+                🚪 Log Out
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="header-title">
+                <h2>{% block page_title %}Overview{% endblock %}</h2>
+            </div>
+            <div class="header-profile">
+                <div class="profile-avatar">
+                    A
+                </div>
+                <div>
+                    <div class="profile-name">Administrator</div>
+                    <div class="profile-role">Super Admin</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="content-container">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'alert-danger' or message.tags == 'error' %}alert-danger{% elif message.tags == 'alert-success' or message.tags == 'success' %}alert-success{% elif message.tags == 'alert-warning' or message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

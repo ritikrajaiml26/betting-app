@@ -1,0 +1,360 @@
+{% extends 'admin_custom/base_admin.html' %}
+
+{% block title %}User details: {{ target_user.username }}{% endblock %}
+{% block page_title %}User Details: {{ target_user.username }}{% endblock %}
+{% block nav_users %}active{% endblock %}
+
+{% block admin_content %}
+<div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px;">
+    <!-- Profile & Actions Column -->
+    <div style="flex: 1; min-width: 350px; display: flex; flex-direction: column; gap: 24px;">
+        <!-- Card 1: profile card -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <span class="card-title">User Account Info</span>
+                {% if target_user.is_blocked %}
+                <span class="badge badge-danger">Blocked</span>
+                {% else %}
+                <span class="badge badge-success">Active</span>
+                {% endif %}
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem;">
+                <div><span style="color: var(--text-secondary);">Username:</span> <strong>{{ target_user.username }}</strong></div>
+                <div><span style="color: var(--text-secondary);">Full Name:</span> <strong>{{ target_user.name }}</strong></div>
+                <div><span style="color: var(--text-secondary);">Mobile Number:</span> <code>{{ target_user.mobile }}</code></div>
+                <div><span style="color: var(--text-secondary);">Email ID:</span> <code>{{ target_user.email }}</code></div>
+                <div><span style="color: var(--text-secondary);">Referral Code:</span> <code>{{ target_user.referral_code }}</code></div>
+                <div><span style="color: var(--text-secondary);">Referred By:</span> {% if target_user.referred_by %}<a href="{% url 'admin_user_detail' target_user.referred_by.id %}" style="color: var(--primary);">{{ target_user.referred_by.username }}</a>{% else %}None{% endif %}</div>
+                <div><span style="color: var(--text-secondary);">Registered On:</span> {{ target_user.created_at|date:"d M Y H:i" }}</div>
+                <div><span style="color: var(--text-secondary);">Last Login:</span> {{ target_user.last_login_at|date:"d M Y H:i"|default:"Never logged in" }}</div>
+                <div style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 12px; font-size: 0.8rem; word-break: break-all;">
+                    <span style="color: var(--text-secondary);">Hashed Password (Django format):</span><br>
+                    <code>{{ target_user.password }}</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: reset password & block/unblock -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <span class="card-title">Quick Settings</span>
+            </div>
+            
+            <!-- Reset Password -->
+            <form method="post" action="" style="margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_password">
+                <div class="form-group">
+                    <label class="form-label">Set New Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Min 6 characters" required>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">Change Password</button>
+            </form>
+
+            <!-- Block/Unblock -->
+            <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_block">
+                {% if target_user.is_blocked %}
+                <div class="form-group">
+                    <label class="form-label">Blocked Reason</label>
+                    <p style="color: var(--color-red); font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">{{ target_user.blocked_reason|default:"No reason provided" }}</p>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem;">Blocked at: {{ target_user.blocked_at|date:"d M Y H:i" }}</p>
+                </div>
+                <button type="submit" class="btn btn-sm btn-success btn-block">Unblock Account</button>
+                {% else %}
+                <div class="form-group">
+                    <label class="form-label">Reason to Block</label>
+                    <input type="text" name="reason" class="form-control" placeholder="Enter blocking reason..." required>
+                </div>
+                <button type="submit" class="btn btn-sm btn-danger btn-block">Block Account</button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Balance & Bank Column -->
+    <div style="flex: 1.2; min-width: 400px; display: flex; flex-direction: column; gap: 24px;">
+        <!-- Card 3: Wallet balances -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <span class="card-title">Wallet Management</span>
+                <span class="card-title" style="color: var(--primary);">Total: ₹{{ wallet.get_total_balance }}</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; text-align: center;">
+                <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Deposit</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">₹{{ wallet.deposit_balance }}</div>
+                </div>
+                <div style="background: rgba(0,200,83,0.02); padding: 12px; border-radius: 10px; border: 1px solid rgba(0,200,83,0.1);">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Winning</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-green); margin-top: 4px;">₹{{ wallet.winning_balance }}</div>
+                </div>
+                <div style="background: rgba(255,184,0,0.02); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,184,0,0.1);">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Bonus</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-warning); margin-top: 4px;">₹{{ wallet.bonus_balance }}</div>
+                </div>
+            </div>
+
+            <!-- Balance adjustment Form -->
+            <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="adjust_wallet">
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label class="form-label">Wallet Type</label>
+                        <select name="wallet_type" class="form-control" style="background: var(--dark-bg);">
+                            <option value="deposit">Deposit Wallet</option>
+                            <option value="winning">Winning Wallet</option>
+                            <option value="bonus">Bonus Wallet</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Adjustment Action</label>
+                        <select name="adjust_action" class="form-control" style="background: var(--dark-bg);">
+                            <option value="add">Add Balance (+)</option>
+                            <option value="deduct">Deduct Balance (-)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Amount (₹)</label>
+                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="Enter amount" required min="0.01">
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary btn-block">Apply Balance Adjustment</button>
+            </form>
+        </div>
+
+        <!-- Card 4: bank details -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <span class="card-title">Bank/UPI Withdrawal Details</span>
+                {% if bank_detail %}
+                    {% if bank_detail.is_verified %}
+                    <span class="badge badge-success">Verified</span>
+                    {% else %}
+                    <span class="badge badge-pending">Pending Verification</span>
+                    {% endif %}
+                {% else %}
+                <span class="badge badge-danger">Not Added</span>
+                {% endif %}
+            </div>
+
+            {% if bank_detail %}
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.95rem; margin-bottom: 16px;">
+                <div><span style="color: var(--text-secondary);">UPI ID:</span> <strong>{{ bank_detail.upi_id }}</strong></div>
+                <div><span style="color: var(--text-secondary);">Bank Name:</span> <strong>{{ bank_detail.bank_name }}</strong></div>
+                <div><span style="color: var(--text-secondary);">Account Holder:</span> <strong>{{ bank_detail.account_holder_name }}</strong></div>
+                <div><span style="color: var(--text-secondary);">Submitted:</span> {{ bank_detail.created_at|date:"d M Y H:i" }}</div>
+                {% if bank_detail.is_verified %}
+                <div><span style="color: var(--text-secondary);">Verified On:</span> {{ bank_detail.verified_at|date:"d M Y H:i" }}</div>
+                {% endif %}
+            </div>
+
+            {% if not bank_detail.is_verified %}
+            <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="verify_bank">
+                <button type="submit" class="btn btn-sm btn-success btn-block">Approve & Verify Bank Details</button>
+            </form>
+            {% endif %}
+
+            {% else %}
+            <p style="text-align: center; color: var(--text-secondary); padding: 12px; font-size: 0.9rem;">
+                This user has not linked bank details yet.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- History tabs panel -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Activity Histories (Max 30 records shown)</span>
+    </div>
+    
+    <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <button class="btn btn-sm btn-primary" onclick="showHistory('bets')">Bets History</button>
+        <button class="btn btn-sm" style="background: rgba(255,255,255,0.03);" onclick="showHistory('transactions')">All Transactions</button>
+        <button class="btn btn-sm" style="background: rgba(255,255,255,0.03);" onclick="showHistory('recharges')">Deposits</button>
+        <button class="btn btn-sm" style="background: rgba(255,255,255,0.03);" onclick="showHistory('withdraws')">Withdraws</button>
+    </div>
+
+    <!-- 1. Bet History -->
+    <div id="hist-bets" class="hist-tab table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Room</th>
+                    <th>Bet Type</th>
+                    <th>Selection</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Winnings</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bet in bets %}
+                <tr>
+                    <td><code>{{ bet.period }}</code></td>
+                    <td>{{ bet.room.get_name_display }}</td>
+                    <td><span class="badge" style="background: rgba(255,255,255,0.05);">{{ bet.get_bet_type_display }}</span></td>
+                    <td>
+                        <span class="badge" style="background: {% if bet.selection == 'red' %}var(--color-red){% elif bet.selection == 'green' %}var(--color-green){% elif bet.selection == 'violet' %}var(--color-violet){% else %}rgba(255,255,255,0.15){% endif %}; color: white;">
+                            {{ bet.selection|upper }}
+                        </span>
+                    </td>
+                    <td>₹{{ bet.amount }}</td>
+                    <td>
+                        <span class="badge {% if bet.status == 'won' %}badge-success{% elif bet.status == 'lost' %}badge-danger{% else %}badge-pending{% endif %}">
+                            {{ bet.get_status_display }}
+                        </span>
+                    </td>
+                    <td style="color: var(--color-green); font-weight: 700;">{% if bet.status == 'won' %}₹{{ bet.winning_amount }}{% else %}-{% endif %}</td>
+                    <td><small>{{ bet.created_at|date:"d M Y H:i" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-secondary);">No bets history available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 2. Transaction History -->
+    <div id="hist-transactions" class="hist-tab table-responsive" style="display: none;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Wallet</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Reference ID</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td><span class="badge" style="background: rgba(255,255,255,0.05);">{{ tx.get_transaction_type_display }}</span></td>
+                    <td><span class="badge" style="background: rgba(108,99,255,0.1);">{{ tx.wallet_type|default:"-"|upper }}</span></td>
+                    <td style="font-weight: 700; color: {% if tx.amount >= 0 %}var(--color-green){% else %}var(--color-red){% endif %};">
+                        {% if tx.amount >= 0 %}+{% endif %}₹{{ tx.amount }}
+                    </td>
+                    <td><small>{{ tx.description }}</small></td>
+                    <td>
+                        <span class="badge {% if tx.status == 'completed' %}badge-success{% elif tx.status == 'pending' %}badge-pending{% else %}badge-danger{% endif %}">
+                            {{ tx.get_status_display }}
+                        </span>
+                    </td>
+                    <td><code>{{ tx.reference_id|default:"-" }}</code></td>
+                    <td><small>{{ tx.created_at|date:"d M Y H:i" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary);">No transactions recorded.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 3. Recharge History -->
+    <div id="hist-recharges" class="hist-tab table-responsive" style="display: none;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Amount</th>
+                    <th>UTR Number</th>
+                    <th>Status</th>
+                    <th>Processed By</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recharges %}
+                <tr>
+                    <td><code>#{{ r.id }}</code></td>
+                    <td style="color: var(--color-green); font-weight: 700;">₹{{ r.amount }}</td>
+                    <td><code>{{ r.utr_number }}</code></td>
+                    <td>
+                        <span class="badge {% if r.status == 'pending' %}badge-pending{% elif r.status == 'approved' %}badge-success{% else %}badge-danger{% endif %}">
+                            {{ r.get_status_display }}
+                        </span>
+                    </td>
+                    <td><small>{{ r.processed_by.username|default:"-" }}</small></td>
+                    <td><small>{{ r.created_at|date:"d M Y H:i" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-secondary);">No deposit requests found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 4. Withdraw History -->
+    <div id="hist-withdraws" class="hist-tab table-responsive" style="display: none;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Amount</th>
+                    <th>UPI ID</th>
+                    <th>Status</th>
+                    <th>Processed By</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in withdraws %}
+                <tr>
+                    <td><code>#{{ w.id }}</code></td>
+                    <td style="color: var(--color-red); font-weight: 700;">₹{{ w.amount }}</td>
+                    <td><code>{{ w.upi_id }}</code></td>
+                    <td>
+                        <span class="badge {% if w.status == 'pending' %}badge-pending{% elif w.status == 'processing' %}badge-processing{% elif w.status == 'success' %}badge-success{% else %}badge-danger{% endif %}">
+                            {{ w.get_status_display }}
+                        </span>
+                    </td>
+                    <td><small>{{ w.processed_by.username|default:"-" }}</small></td>
+                    <td><small>{{ w.created_at|date:"d M Y H:i" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-secondary);">No withdrawal requests found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function showHistory(tabId) {
+    // Hide all tabs
+    document.querySelectorAll('.hist-tab').forEach(el => el.style.display = 'none');
+    
+    // Show selected
+    document.getElementById('hist-' + tabId).style.display = 'block';
+    
+    // Toggle active buttons styling (optional logic)
+    event.target.parentNode.querySelectorAll('button').forEach(btn => {
+        btn.classList.remove('btn-primary');
+        btn.style.background = 'rgba(255,255,255,0.03)';
+    });
+    event.target.classList.add('btn-primary');
+    event.target.style.background = '';
+}
+</script>
+{% endblock %}

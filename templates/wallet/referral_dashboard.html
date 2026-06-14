@@ -1,0 +1,406 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Referral Program - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'wallet' %}" class="back-btn">←</a>
+            <span class="page-title">Referral Program</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Referral Banner -->
+        <div class="referral-banner">
+            <div class="banner-icon">🎁</div>
+            <h2>Invite Friends & Earn</h2>
+            <p>Get ₹250 for every friend who completes their first recharge!</p>
+        </div>
+
+        <!-- Your Referral Code -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Your Referral Code</span>
+            </div>
+            <div class="referral-code-display">
+                <span class="code">{{ referral_code }}</span>
+                <button class="copy-btn" onclick="copyReferralCode()">📋 Copy</button>
+            </div>
+            <div class="referral-link">
+                <span class="link-text">{{ referral_link }}</span>
+                <button class="copy-btn" onclick="copyReferralLink()">📋 Copy Link</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid mt-3">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_referrals }}</div>
+                <div class="stat-label">Total Referrals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.active_referrals }}</div>
+                <div class="stat-label">Active Referrals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">₹{{ stats.total_commission|default:"0.00" }}</div>
+                <div class="stat-label">Total Commission</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">₹{{ stats.pending_bonus|default:"0.00" }}</div>
+                <div class="stat-label">Pending Bonus</div>
+            </div>
+        </div>
+
+        <!-- Commission Rates -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Commission Rates</span>
+            </div>
+            <div class="commission-rates">
+                <div class="rate-item">
+                    <span class="rate-level">Level 1</span>
+                    <span class="rate-value">20%</span>
+                    <span class="rate-desc">Direct referrals</span>
+                </div>
+                <div class="rate-item">
+                    <span class="rate-level">Level 2</span>
+                    <span class="rate-value">10%</span>
+                    <span class="rate-desc">Their referrals</span>
+                </div>
+                <div class="rate-item">
+                    <span class="rate-level">Level 3</span>
+                    <span class="rate-value">7%</span>
+                    <span class="rate-desc">Third level</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Referral List -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Your Referrals</span>
+            </div>
+            
+            {% if referral_list %}
+                <div class="referral-list">
+                    {% for referral in referral_list %}
+                    <div class="referral-item">
+                        <div class="referral-avatar">
+                            {{ referral.user.username|first|upper }}
+                        </div>
+                        <div class="referral-info">
+                            <div class="referral-name">{{ referral.user.username }}</div>
+                            <div class="referral-date">{{ referral.user.created_at|date:"M d, Y" }}</div>
+                        </div>
+                        <div class="referral-stats">
+                            <div class="referral-recharged">₹{{ referral.total_recharged|default:"0.00" }}</div>
+                            <div class="referral-commission">+₹{{ referral.commission_earned|default:"0.00" }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">👥</div>
+                    <div class="empty-state-title">No referrals yet</div>
+                    <p>Share your referral code to start earning!</p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item active">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.referral-banner {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: white;
+    margin-bottom: var(--spacing-lg);
+}
+
+.banner-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.referral-banner h2 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.referral-banner p {
+    opacity: 0.9;
+    margin: 0;
+}
+
+.referral-code-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.code {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    letter-spacing: 2px;
+}
+
+.referral-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.link-text {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    word-break: break-all;
+}
+
+.copy-btn {
+    padding: 8px 16px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+.commission-rates {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.rate-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.rate-level {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.rate-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-left: auto;
+}
+
+.rate-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.referral-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.referral-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.referral-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+}
+
+.referral-info {
+    flex: 1;
+}
+
+.referral-name {
+    font-weight: 600;
+}
+
+.referral-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+.referral-stats {
+    text-align: right;
+}
+
+.referral-recharged {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.referral-commission {
+    font-size: 0.75rem;
+    color: var(--color-green);
+    margin-top: var(--spacing-xs);
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxl);
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+
+<script>
+function copyReferralCode() {
+    navigator.clipboard.writeText('{{ referral_code }}').then(() => {
+        alert('Referral code copied: {{ referral_code }}');
+    });
+}
+
+function copyReferralLink() {
+    navigator.clipboard.writeText('{{ referral_link }}').then(() => {
+        alert('Referral link copied!');
+    });
+}
+</script>
+{% endblock %}

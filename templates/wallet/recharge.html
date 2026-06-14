@@ -1,0 +1,450 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Recharge - Color Prediction{% endblock %}
+
+{% block content %}
+<div style="display: none;">{% csrf_token %}</div>
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'wallet' %}" class="back-btn">←</a>
+            <span class="page-title">Deposit</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Step 1: Choose Amount -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Choose Recharge Amount</span>
+            </div>
+            <div class="card-body">
+                <div class="recharge-quick-amounts">
+                    <button class="recharge-quick-btn" onclick="selectRechargeAmount(50)">₹50</button>
+                    <button class="recharge-quick-btn" onclick="selectRechargeAmount(200)">₹200</button>
+                    <button class="recharge-quick-btn" onclick="selectRechargeAmount(500)">₹500</button>
+                    <button class="recharge-quick-btn" onclick="selectRechargeAmount(1000)">₹1000</button>
+                    <button class="recharge-quick-btn" onclick="selectRechargeAmount(5000)">₹5000</button>
+                    <button class="recharge-quick-btn" onclick="selectRechargeAmount(50000)">₹50000</button>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Or Enter Amount Manually</label>
+                    <input type="number" id="amount" class="form-control" placeholder="Enter manual amount" min="1" oninput="onAmountInput()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Scan to Pay (Hidden initially) -->
+        <div class="card mt-3" id="step2-qr-card" style="display: none;">
+            <div class="card-header">
+                <span class="card-title">Scan to Pay</span>
+            </div>
+            <div class="qr-section" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                {% if admin_qr %}
+                    <img src="{{ admin_qr }}" alt="Scan QR Code" style="max-width: 220px; border-radius: var(--radius-md); box-shadow: var(--shadow-md); margin-bottom: var(--spacing-md);">
+                {% else %}
+                    <div class="qr-placeholder" style="margin-bottom: var(--spacing-md);">
+                        <div class="qr-icon">📱</div>
+                    </div>
+                {% endif %}
+                <p class="text-muted" style="font-size: 0.875rem; text-align: center; margin-bottom: var(--spacing-sm);">
+                    Scan the QR code or copy the UPI ID below to transfer money.
+                </p>
+                <div class="upi-id">{{ admin_upi }}</div>
+            </div>
+            <div class="card-body" style="padding-top: 0;">
+                <p class="text-muted text-center" style="font-size: 0.85rem; margin-bottom: 0; color: var(--color-green); font-weight: 600;">
+                    🔥 First recharge gets 20% extra deposit balance!
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 3: Submit UTR (Hidden initially) -->
+        <div class="card mt-3" id="step2-form-card" style="display: none;">
+            <div class="card-header">
+                <span class="card-title">Submit Recharge Request</span>
+            </div>
+            <div class="card-body">
+                <div id="recharge-form-inputs">
+                    <div class="form-group">
+                        <label class="form-label" style="font-size: 1rem;">Selected Amount: <strong id="display-amount" style="color: var(--primary-color);">₹0</strong></label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">UTR / Transaction ID (12-digit)</label>
+                        <input type="text" id="utr_number" class="form-control" placeholder="Enter 12-digit UTR number" maxlength="12">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="submitRecharge()">
+                        Submit Recharge
+                    </button>
+                </div>
+
+                <!-- Inline Success Alert -->
+                <div id="success-alert" class="alert alert-success text-center" style="display: none; flex-direction: column; padding: var(--spacing-xl); gap: var(--spacing-sm);">
+                    <div style="font-size: 2.5rem;">✅</div>
+                    <h3 style="margin-bottom: var(--spacing-xs); color: var(--color-green);">Success!</h3>
+                    <p style="font-size: 0.95rem; margin-bottom: 0; line-height: 1.5; color: var(--text-primary);">
+                        We process your deposit. It will reflect in your wallet shortly.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Recharges -->
+        {% if pending_recharges %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Pending Recharges</span>
+            </div>
+            <div class="card-body">
+                {% for recharge in pending_recharges %}
+                <div class="pending-item">
+                    <div class="pending-info">
+                        <div class="pending-amount">₹{{ recharge.amount }}</div>
+                        <div class="pending-date">{{ recharge.created_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <span class="status-badge pending">Pending</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Approved Recharges -->
+        {% if approved_recharges %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Approved Recharges</span>
+            </div>
+            <div class="card-body">
+                {% for recharge in approved_recharges %}
+                <div class="history-item">
+                    <div class="history-info">
+                        <div class="history-amount">₹{{ recharge.amount }}</div>
+                        <div class="history-date">{{ recharge.processed_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <span class="status-badge success">Approved</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item active">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.qr-section {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-xl);
+}
+
+.qr-placeholder {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    min-width: 200px;
+}
+
+.qr-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.upi-id {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    word-break: break-all;
+    margin-top: var(--spacing-sm);
+}
+
+.pending-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.pending-info, .history-info {
+    flex: 1;
+}
+
+.pending-amount, .history-amount {
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.pending-date, .history-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.pending {
+    background: rgba(255, 184, 0, 0.2);
+    color: #FFB800;
+}
+
+.status-badge.success {
+    background: rgba(0, 200, 83, 0.2);
+    color: var(--color-green);
+}
+
+.status-badge.rejected {
+    background: rgba(255, 23, 68, 0.2);
+    color: var(--color-red);
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+
+.recharge-quick-amounts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.recharge-quick-btn {
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.recharge-quick-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(108, 99, 255, 0.05);
+}
+
+.recharge-quick-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--glow-primary);
+}
+</style>
+
+<script>
+function selectRechargeAmount(amount) {
+    document.getElementById('amount').value = amount;
+    
+    // Set active class
+    document.querySelectorAll('.recharge-quick-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.textContent.replace('₹', '')) === amount) {
+            btn.classList.add('active');
+        }
+    });
+    
+    showQRStep(amount);
+}
+
+function onAmountInput() {
+    const amount = parseFloat(document.getElementById('amount').value);
+    
+    // Clear active class from buttons
+    document.querySelectorAll('.recharge-quick-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    if (amount && amount > 0) {
+        showQRStep(amount);
+    } else {
+        hideQRStep();
+    }
+}
+
+function showQRStep(amount) {
+    document.getElementById('display-amount').textContent = `₹${amount}`;
+    document.getElementById('step2-qr-card').style.display = 'block';
+    document.getElementById('step2-form-card').style.display = 'block';
+}
+
+function hideQRStep() {
+    document.getElementById('step2-qr-card').style.display = 'none';
+    document.getElementById('step2-form-card').style.display = 'none';
+}
+
+function submitRecharge() {
+    const amount = document.getElementById('amount').value;
+    const utr = document.getElementById('utr_number').value.trim();
+
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+
+    if (!utr) {
+        alert('Please enter UTR number');
+        return;
+    }
+
+    // Validate 12-digit numeric UTR/Transaction number
+    const utrRegex = /^\d{12}$/;
+    if (!utrRegex.test(utr)) {
+        alert('Please enter a valid 12-digit UTR/Transaction number');
+        return;
+    }
+
+    fetch('{% url "recharge" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            amount: parseFloat(amount),
+            utr_number: utr
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Hide the input fields card area
+            document.getElementById('recharge-form-inputs').style.display = 'none';
+            // Show inline success message
+            const successAlert = document.getElementById('success-alert');
+            successAlert.style.display = 'flex';
+            
+            // Clear input values
+            document.getElementById('amount').value = '';
+            document.getElementById('utr_number').value = '';
+            
+            // Reload page after a few seconds to reflect pending status
+            setTimeout(() => {
+                location.reload();
+            }, 4000);
+        } else {
+            alert(data.error || 'Failed to submit recharge');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Failed to submit recharge');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

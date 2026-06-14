@@ -1,0 +1,271 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Game History - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'game_home' %}" class="back-btn">←</a>
+            <span class="page-title">Game History</span>
+        </div>
+    </header>
+
+    <!-- Room Tabs -->
+    <div class="room-tabs">
+        {% for r in game_rooms %}
+        <a href="?room={{ r.name }}" class="room-tab {% if r.name == room.name %}active{% endif %}">
+            {{ r.get_name_display }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <main class="main-content">
+        {% if results %}
+        <div class="history-list">
+            {% for result in results %}
+            <div class="history-item">
+                <div class="history-period">{{ result.period }}</div>
+                <div class="history-number">
+                    <span class="number-ball {{ result.winning_color }}">
+                        {{ result.winning_number }}
+                    </span>
+                </div>
+                <div class="history-color">
+                    <span class="color-badge {{ result.winning_color }}">
+                        {{ result.get_winning_color_display }}
+                    </span>
+                </div>
+                <div class="history-time">{{ result.created_at|date:"H:i:s" }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-title">No game history yet</div>
+            <div class="empty-state-subtitle">Game results will appear here</div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.room-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-secondary);
+    overflow-x: auto;
+}
+
+.room-tab {
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+}
+
+.room-tab.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    gap: var(--spacing-md);
+}
+
+.history-period {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: monospace;
+    min-width: 120px;
+}
+
+.history-number {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.number-ball {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+}
+
+.number-ball.green {
+    background: linear-gradient(135deg, var(--color-green), var(--color-green-light));
+}
+
+.number-ball.red {
+    background: linear-gradient(135deg, var(--color-red), var(--color-red-light));
+}
+
+.number-ball.violet {
+    background: linear-gradient(135deg, var(--color-violet), var(--color-violet-light));
+}
+
+.history-color {
+    min-width: 80px;
+}
+
+.color-badge {
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.color-badge.green {
+    background: rgba(0, 200, 83, 0.2);
+    color: var(--color-green);
+}
+
+.color-badge.red {
+    background: rgba(255, 23, 68, 0.2);
+    color: var(--color-red);
+}
+
+.color-badge.violet {
+    background: rgba(170, 0, 255, 0.2);
+    color: var(--color-violet);
+}
+
+.history-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 60px;
+    text-align: right;
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxl);
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.empty-state-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.empty-state-subtitle {
+    font-size: 0.875rem;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+{% endblock %}

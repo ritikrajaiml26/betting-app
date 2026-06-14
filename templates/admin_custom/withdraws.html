@@ -1,0 +1,139 @@
+{% extends 'admin_custom/base_admin.html' %}
+
+{% block title %}Withdrawal Requests Management{% endblock %}
+{% block page_title %}Withdrawal Requests Management{% endblock %}
+{% block nav_withdraws %}active{% endblock %}
+
+{% block admin_content %}
+<!-- Pending/Processing Withdrawals Card -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title" style="color: var(--primary);">Active Withdrawal Requests ({{ pending_withdraws|length }})</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User Details</th>
+                    <th>Amount</th>
+                    <th>UPI ID / Bank details</th>
+                    <th>Submitted Date</th>
+                    <th>Current Status</th>
+                    <th>Update Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in pending_withdraws %}
+                <tr>
+                    <td><code>#{{ w.id }}</code></td>
+                    <td>
+                        <strong>{{ w.user.name }}</strong><br>
+                        <small style="color: var(--text-secondary);">@{{ w.user.username }}</small><br>
+                        <small style="color: var(--text-secondary);">{{ w.user.mobile }}</small>
+                    </td>
+                    <td style="color: var(--color-red); font-size: 1.1rem; font-weight: 700;">₹{{ w.amount }}</td>
+                    <td>
+                        <strong>UPI ID: <code>{{ w.upi_id }}</code></strong><br>
+                        <small style="color: var(--text-secondary);">Bank: {{ w.bank_name }}</small><br>
+                        <small style="color: var(--text-secondary);">Name: {{ w.account_holder_name }}</small>
+                    </td>
+                    <td><small>{{ w.created_at|date:"d M Y H:i" }}</small></td>
+                    <td>
+                        <span class="badge {% if w.status == 'pending' %}badge-pending{% elif w.status == 'processing' %}badge-processing{% elif w.status == 'success' %}badge-success{% else %}badge-danger{% endif %}">
+                            {{ w.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <!-- Status Update Inline Form -->
+                        <form method="post" action="{% url 'admin_withdraw_update_status' w.id %}" style="display: flex; flex-direction: column; gap: 6px; width: 180px;">
+                            {% csrf_token %}
+                            <select name="status" class="form-control" onchange="onStatusSelect(this, {{ w.id }})" style="padding: 4px 8px; font-size: 0.85rem; background: var(--dark-bg);">
+                                <option value="pending" {% if w.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="processing" {% if w.status == 'processing' %}selected{% endif %}>Processing</option>
+                                <option value="success" {% if w.status == 'success' %}selected{% endif %}>Complete (Success)</option>
+                                <option value="rejected" {% if w.status == 'rejected' %}selected{% endif %}>Reject Request</option>
+                            </select>
+                            
+                            <!-- Rejection Reason input (only shown if Reject selected, or input inside modal) -->
+                            <div id="reject-reason-box-{{ w.id }}" style="display: none;">
+                                <input type="text" name="reason" class="form-control" placeholder="Rejection reason" style="padding: 4px 8px; font-size: 0.8rem; margin-top: 4px;">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-sm btn-primary" style="margin-top: 4px; padding: 4px 8px; font-size: 0.8rem;">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 32px;">No active withdrawal requests.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Processed Withdrawals Card -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Processed Requests (Last 100)</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>UPI ID</th>
+                    <th>Status</th>
+                    <th>Processed By</th>
+                    <th>Processed Time</th>
+                    <th>Reason / Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in processed_withdraws %}
+                <tr>
+                    <td><code>#{{ w.id }}</code></td>
+                    <td>
+                        <strong>{{ w.user.username }}</strong><br>
+                        <small style="color: var(--text-secondary);">{{ w.user.mobile }}</small>
+                    </td>
+                    <td style="font-weight: 700; color: {% if w.status == 'success' %}var(--color-green){% else %}var(--color-red){% endif %};">₹{{ w.amount }}</td>
+                    <td><code>{{ w.upi_id }}</code></td>
+                    <td>
+                        <span class="badge {% if w.status == 'success' %}badge-success{% else %}badge-danger{% endif %}">
+                            {{ w.get_status_display }}
+                        </span>
+                    </td>
+                    <td><small>{{ w.processed_by.username|default:"-" }}</small></td>
+                    <td><small>{{ w.processed_at|date:"d M H:i"|default:"-" }}</small></td>
+                    <td style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary);"><small>{{ w.rejection_reason|default:"-" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 24px;">No processed withdrawal records.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function onStatusSelect(selectElement, withdrawId) {
+    const reasonBox = document.getElementById('reject-reason-box-' + withdrawId);
+    if (selectElement.value === 'rejected') {
+        reasonBox.style.display = 'block';
+        reasonBox.querySelector('input').setAttribute('required', 'true');
+    } else {
+        reasonBox.style.display = 'none';
+        reasonBox.querySelector('input').removeAttribute('required');
+    }
+}
+</script>
+{% endblock %}

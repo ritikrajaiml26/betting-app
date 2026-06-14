@@ -1,0 +1,301 @@
+{% extends 'admin_custom/base_admin.html' %}
+
+{% block title %}Game Control Panel{% endblock %}
+{% block page_title %}Game Control Panel{% endblock %}
+{% block nav_game %}active{% endblock %}
+
+{% block admin_content %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+    {% for rdata in rooms_data %}
+    <div class="card">
+        <div class="card-header" style="border-bottom: none; padding-bottom: 0; margin-bottom: 12px;">
+            <span class="card-title" style="font-size: 1.25rem; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                {{ rdata.room.get_name_display }}
+            </span>
+            <span class="badge badge-success">Active</span>
+        </div>
+
+        <!-- Room Status -->
+        <div style="margin-bottom: 20px; font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: var(--text-secondary);">Active Period:</span>
+                <strong>{{ rdata.current_period }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: var(--text-secondary);">Current Mode:</span>
+                <strong style="text-transform: uppercase; color:
+                    {% if rdata.room.result_mode == 'manual' %}var(--color-red)
+                    {% elif rdata.room.result_mode == 'pattern' %}var(--color-warning)
+                    {% elif rdata.room.result_mode == 'smart_profit' %}var(--secondary)
+                    {% else %}var(--color-green){% endif %};">
+                    {% if rdata.room.result_mode == 'auto_random' %}🎲 Auto Random
+                    {% elif rdata.room.result_mode == 'smart_profit' %}💰 Least Bet Wins
+                    {% elif rdata.room.result_mode == 'pattern' %}📋 Pattern (Rule {{ rdata.room.pattern_rule }})
+                    {% else %}✋ Manual{% endif %}
+                </strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: var(--text-secondary);">Bets This Round:</span>
+                <strong>{{ rdata.bets_count }} bets (₹{{ rdata.bets_amount }})</strong>
+            </div>
+            {% if rdata.room.result_mode == 'auto_random' %}
+            <div style="margin-top: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; display: flex; gap: 12px; justify-content: center;">
+                <span style="color: var(--color-red);">🔴 {{ rdata.room.red_pct }}%</span>
+                <span style="color: var(--color-green);">🟢 {{ rdata.room.green_pct }}%</span>
+                <span style="color: var(--color-violet);">🟣 {{ rdata.room.violet_pct }}%</span>
+            </div>
+            {% endif %}
+            {% if rdata.room.preset_period == rdata.current_period %}
+            <div style="background: rgba(170,0,255,0.08); border: 1px dashed var(--color-violet); padding: 8px; border-radius: 8px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">Preset Next Result:</span>
+                <strong class="badge" style="background: {% if rdata.room.preset_winning_color == 'red' %}var(--color-red){% elif rdata.room.preset_winning_color == 'green' %}var(--color-green){% else %}var(--color-violet){% endif %}; color: white;">
+                    {{ rdata.room.preset_winning_color|upper }} ({{ rdata.room.preset_winning_number }})
+                </strong>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ===== SECTION A: MODE SELECTOR ===== -->
+        <div style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px;">
+            <label class="form-label" style="color: var(--primary); font-weight: 700; margin-bottom: 12px; display: block;">
+                🎮 Select Result Mode
+            </label>
+
+            <!-- Tab Buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px;" id="mode-tabs-{{ rdata.room.id }}">
+                <button type="button" onclick="showModePanel('{{ rdata.room.id }}', 'manual')"
+                    class="mode-tab-btn {% if rdata.room.result_mode == 'manual' %}mode-tab-active{% endif %}"
+                    style="padding: 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 1px solid {% if rdata.room.result_mode == 'manual' %}var(--color-red){% else %}var(--border-color){% endif %}; background: {% if rdata.room.result_mode == 'manual' %}rgba(255,23,68,0.12){% else %}rgba(255,255,255,0.03){% endif %}; color: {% if rdata.room.result_mode == 'manual' %}var(--color-red){% else %}var(--text-secondary){% endif %}; transition: all 0.2s;"
+                    id="tab-manual-{{ rdata.room.id }}">
+                    ✋ Manual
+                </button>
+                <button type="button" onclick="showModePanel('{{ rdata.room.id }}', 'smart_profit')"
+                    style="padding: 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 1px solid {% if rdata.room.result_mode == 'smart_profit' %}var(--secondary){% else %}var(--border-color){% endif %}; background: {% if rdata.room.result_mode == 'smart_profit' %}rgba(0,212,170,0.1){% else %}rgba(255,255,255,0.03){% endif %}; color: {% if rdata.room.result_mode == 'smart_profit' %}var(--secondary){% else %}var(--text-secondary){% endif %}; transition: all 0.2s;"
+                    id="tab-smart_profit-{{ rdata.room.id }}">
+                    💰 Least Bet Wins
+                </button>
+                <button type="button" onclick="showModePanel('{{ rdata.room.id }}', 'pattern')"
+                    style="padding: 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 1px solid {% if rdata.room.result_mode == 'pattern' %}var(--color-warning){% else %}var(--border-color){% endif %}; background: {% if rdata.room.result_mode == 'pattern' %}rgba(255,184,0,0.1){% else %}rgba(255,255,255,0.03){% endif %}; color: {% if rdata.room.result_mode == 'pattern' %}var(--color-warning){% else %}var(--text-secondary){% endif %}; transition: all 0.2s;"
+                    id="tab-pattern-{{ rdata.room.id }}">
+                    📋 Pattern Rules
+                </button>
+                <button type="button" onclick="showModePanel('{{ rdata.room.id }}', 'auto_random')"
+                    style="padding: 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 1px solid {% if rdata.room.result_mode == 'auto_random' %}var(--color-green){% else %}var(--border-color){% endif %}; background: {% if rdata.room.result_mode == 'auto_random' %}rgba(0,200,83,0.1){% else %}rgba(255,255,255,0.03){% endif %}; color: {% if rdata.room.result_mode == 'auto_random' %}var(--color-green){% else %}var(--text-secondary){% endif %}; transition: all 0.2s;"
+                    id="tab-auto_random-{{ rdata.room.id }}">
+                    🎲 Auto Random
+                </button>
+            </div>
+
+            <!-- PANEL: Manual (just activate manual mode - preset below) -->
+            <div id="panel-manual-{{ rdata.room.id }}" style="display: {% if rdata.room.result_mode == 'manual' %}block{% else %}none{% endif %};">
+                <div style="background: rgba(255,23,68,0.06); border: 1px solid rgba(255,23,68,0.2); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+                    <p style="color: var(--color-red); font-size: 0.88rem; font-weight: 600; margin-bottom: 4px;">✋ Manual Mode</p>
+                    <p style="color: var(--text-secondary); font-size: 0.82rem;">Aap khud neeche se number aur color set karein. "Preset Result" section use karein.</p>
+                </div>
+                <form method="post" action="{% url 'admin_game_control' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="set_mode">
+                    <input type="hidden" name="room_id" value="{{ rdata.room.id }}">
+                    <input type="hidden" name="result_mode" value="manual">
+                    <button type="submit" class="btn btn-sm" style="background: var(--color-red); color: white; width: 100%; padding: 9px;">
+                        ✅ Activate Manual Mode
+                    </button>
+                </form>
+            </div>
+
+            <!-- PANEL: Least Bet Wins (Smart Profit) -->
+            <div id="panel-smart_profit-{{ rdata.room.id }}" style="display: {% if rdata.room.result_mode == 'smart_profit' %}block{% else %}none{% endif %};">
+                <div style="background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.2); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+                    <p style="color: var(--secondary); font-size: 0.88rem; font-weight: 600; margin-bottom: 4px;">💰 Least Bet Wins Mode</p>
+                    <p style="color: var(--text-secondary); font-size: 0.82rem;">Jo color par kam bet hoga, wo win karega. Violet is exempt — sirf Red aur Green compete karte hain.</p>
+                </div>
+                <form method="post" action="{% url 'admin_game_control' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="set_mode">
+                    <input type="hidden" name="room_id" value="{{ rdata.room.id }}">
+                    <input type="hidden" name="result_mode" value="smart_profit">
+                    <button type="submit" class="btn btn-sm" style="background: var(--secondary); color: #000; width: 100%; padding: 9px;">
+                        ✅ Activate Least Bet Wins
+                    </button>
+                </form>
+            </div>
+
+            <!-- PANEL: Pattern -->
+            <div id="panel-pattern-{{ rdata.room.id }}" style="display: {% if rdata.room.result_mode == 'pattern' %}block{% else %}none{% endif %};">
+                <div style="background: rgba(255,184,0,0.06); border: 1px solid rgba(255,184,0,0.2); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+                    <p style="color: var(--color-warning); font-size: 0.88rem; font-weight: 600; margin-bottom: 4px;">📋 Pattern Mode</p>
+                    <p style="color: var(--text-secondary); font-size: 0.82rem;">Results ek fixed sequence follow karenge. A=🔴Red, B=🟢Green. Violet kabhi nahi aata pattern mein.</p>
+                </div>
+                <form method="post" action="{% url 'admin_game_control' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="set_mode">
+                    <input type="hidden" name="room_id" value="{{ rdata.room.id }}">
+                    <input type="hidden" name="result_mode" value="pattern">
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label class="form-label" style="font-size: 0.78rem;">Pattern Rule Select Karein:</label>
+                        <select name="pattern_rule" class="form-control" style="background: var(--dark-bg); font-size: 0.88rem; padding: 8px 12px;">
+                            {% for value, label in pattern_rules %}
+                            <option value="{{ value }}" {% if rdata.room.pattern_rule == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 0.8rem;" id="pattern-preview-{{ rdata.room.id }}">
+                        <span style="color: var(--text-secondary);">Current sequence state: </span>
+                        <strong style="color: var(--color-warning);">Position {{ rdata.room.pattern_state }}</strong>
+                        <span style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-top: 2px;">(Mode change karne par sequence reset ho jayega)</span>
+                    </div>
+                    <button type="submit" class="btn btn-sm" style="background: var(--color-warning); color: #000; width: 100%; padding: 9px;">
+                        ✅ Activate Pattern Mode
+                    </button>
+                </form>
+            </div>
+
+            <!-- PANEL: Auto Random -->
+            <div id="panel-auto_random-{{ rdata.room.id }}" style="display: {% if rdata.room.result_mode == 'auto_random' %}block{% else %}none{% endif %};">
+                <div style="background: rgba(0,200,83,0.06); border: 1px solid rgba(0,200,83,0.2); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+                    <p style="color: var(--color-green); font-size: 0.88rem; font-weight: 600; margin-bottom: 4px;">🎲 Auto Random Mode</p>
+                    <p style="color: var(--text-secondary); font-size: 0.82rem;">Weighted random result. Aap Red, Green, Violet ka % set kar sakte hain (total = 100%).</p>
+                </div>
+                <form method="post" action="{% url 'admin_game_control' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="set_mode">
+                    <input type="hidden" name="room_id" value="{{ rdata.room.id }}">
+                    <input type="hidden" name="result_mode" value="auto_random">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--color-red); font-weight: 700; display: block; margin-bottom: 4px;">🔴 Red %</label>
+                            <input type="number" name="red_pct" value="{{ rdata.room.red_pct }}" min="0" max="100"
+                                class="form-control" style="background: var(--dark-bg); padding: 7px; font-size: 0.9rem; text-align: center;"
+                                id="red-pct-{{ rdata.room.id }}" oninput="updatePctHint('{{ rdata.room.id }}')">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--color-green); font-weight: 700; display: block; margin-bottom: 4px;">🟢 Green %</label>
+                            <input type="number" name="green_pct" value="{{ rdata.room.green_pct }}" min="0" max="100"
+                                class="form-control" style="background: var(--dark-bg); padding: 7px; font-size: 0.9rem; text-align: center;"
+                                id="green-pct-{{ rdata.room.id }}" oninput="updatePctHint('{{ rdata.room.id }}')">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--color-violet); font-weight: 700; display: block; margin-bottom: 4px;">🟣 Violet %</label>
+                            <input type="number" name="violet_pct" value="{{ rdata.room.violet_pct }}" min="0" max="100"
+                                class="form-control" style="background: var(--dark-bg); padding: 7px; font-size: 0.9rem; text-align: center;"
+                                id="violet-pct-{{ rdata.room.id }}" oninput="updatePctHint('{{ rdata.room.id }}')">
+                        </div>
+                    </div>
+                    <div id="pct-hint-{{ rdata.room.id }}" style="font-size: 0.8rem; text-align: center; margin-bottom: 10px; color: var(--color-green);">
+                        Total: {{ rdata.room.red_pct|add:rdata.room.green_pct|add:rdata.room.violet_pct }}% {% if rdata.room.red_pct|add:rdata.room.green_pct|add:rdata.room.violet_pct == 100 %}✅{% else %}⚠️ Must be 100%{% endif %}
+                    </div>
+                    <button type="submit" class="btn btn-sm" style="background: var(--color-green); color: #000; width: 100%; padding: 9px;">
+                        ✅ Activate Auto Random
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== SECTION B: PRESET MANUAL RESULT ===== -->
+        <form method="post" action="{% url 'admin_game_preset_result' %}" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px;">
+            {% csrf_token %}
+            <input type="hidden" name="room_id" value="{{ rdata.room.id }}">
+            <label class="form-label" style="color: var(--color-red); font-weight: 700; display: block; margin-bottom: 10px;">
+                ✋ Ek Baar Ka Manual Result Set Karein
+            </label>
+            <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 12px;">
+                Ye sirf current period ({{ rdata.current_period }}) ke liye apply hoga. Mode automatically Manual mein switch ho jayega.
+            </p>
+
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; margin-bottom: 12px;">
+                <div>
+                    <label class="form-label" style="font-size: 0.75rem;">Winning Number</label>
+                    <select name="winning_number" id="num-select-{{ rdata.room.id }}" class="form-control" onchange="autoSelectColor({{ rdata.room.id }})" style="background: var(--dark-bg); font-size: 0.85rem; padding: 6px;">
+                        <option value="0">0 (Violet/Red)</option>
+                        <option value="1">1 (Green)</option>
+                        <option value="2">2 (Red)</option>
+                        <option value="3">3 (Green)</option>
+                        <option value="4">4 (Red)</option>
+                        <option value="5">5 (Violet/Green)</option>
+                        <option value="6">6 (Red)</option>
+                        <option value="7">7 (Green)</option>
+                        <option value="8">8 (Red)</option>
+                        <option value="9">9 (Green)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size: 0.75rem;">Winning Color</label>
+                    <select name="winning_color" id="color-select-{{ rdata.room.id }}" class="form-control" style="background: var(--dark-bg); font-size: 0.85rem; padding: 6px;">
+                        <option value="violet">Violet</option>
+                        <option value="green">Green</option>
+                        <option value="red">Red</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-sm btn-block" style="background: linear-gradient(135deg, var(--color-red), var(--color-violet)); color: white; padding: 10px;">
+                🎯 Apply This Result (Next Period)
+            </button>
+        </form>
+
+        <!-- Recent Results -->
+        <div>
+            <label class="form-label" style="margin-bottom: 8px; display: block;">Recent Period Outcomes</label>
+            <div style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; padding-right: 4px;">
+                {% for res in rdata.recent_results %}
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px;">
+                    <code style="font-size: 0.85rem;">{{ res.period }}</code>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="badge" style="background: {% if res.winning_color == 'red' %}var(--color-red){% elif res.winning_color == 'green' %}var(--color-green){% else %}var(--color-violet){% endif %}; color: white;">
+                            {{ res.winning_color|upper }}
+                        </span>
+                        <strong style="font-size: 0.95rem;">{{ res.winning_number }}</strong>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; padding: 12px;">No history yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+// Show/hide mode panels
+function showModePanel(roomId, mode) {
+    const modes = ['manual', 'smart_profit', 'pattern', 'auto_random'];
+    modes.forEach(m => {
+        const panel = document.getElementById('panel-' + m + '-' + roomId);
+        const tab = document.getElementById('tab-' + m + '-' + roomId);
+        if (panel) panel.style.display = (m === mode) ? 'block' : 'none';
+    });
+}
+
+// Auto select color based on number selection
+function autoSelectColor(roomId) {
+    const numSelect = document.getElementById('num-select-' + roomId);
+    const colorSelect = document.getElementById('color-select-' + roomId);
+    const num = parseInt(numSelect.value);
+    const colorMap = { 0: 'violet', 1: 'green', 2: 'red', 3: 'green', 4: 'red', 5: 'violet', 6: 'red', 7: 'green', 8: 'red', 9: 'green' };
+    if (colorMap.hasOwnProperty(num)) colorSelect.value = colorMap[num];
+}
+
+// Update percentage hint
+function updatePctHint(roomId) {
+    const r = parseInt(document.getElementById('red-pct-' + roomId).value) || 0;
+    const g = parseInt(document.getElementById('green-pct-' + roomId).value) || 0;
+    const v = parseInt(document.getElementById('violet-pct-' + roomId).value) || 0;
+    const total = r + g + v;
+    const hint = document.getElementById('pct-hint-' + roomId);
+    if (total === 100) {
+        hint.innerHTML = 'Total: <strong style="color:var(--color-green)">100%</strong> ✅';
+    } else {
+        hint.innerHTML = 'Total: <strong style="color:var(--color-red)">' + total + '%</strong> ⚠️ Must be 100%';
+    }
+}
+
+// Init on load
+window.addEventListener('DOMContentLoaded', () => {
+    {% for rdata in rooms_data %}
+    autoSelectColor({{ rdata.room.id }});
+    updatePctHint('{{ rdata.room.id }}');
+    {% endfor %}
+});
+</script>
+{% endblock %}

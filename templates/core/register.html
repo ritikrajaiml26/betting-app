@@ -1,0 +1,174 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Register - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <span class="logo-icon">🎮</span>
+                <h1>Color Prediction</h1>
+            </div>
+            <p class="auth-subtitle">Create your account & get ₹50 bonus</p>
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <div class="input-group">
+                    <span class="input-group-icon">👤</span>
+                    <input type="text" name="name" class="form-control" placeholder="Enter your name" required value="{% if request.POST.name %}{{ request.POST.name }}{% endif %}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Mobile Number</label>
+                <div class="input-group">
+                    <span class="input-group-icon">📱</span>
+                    <input type="tel" name="mobile" class="form-control" placeholder="Enter your mobile number" required value="{% if request.POST.mobile %}{{ request.POST.mobile }}{% endif %}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-icon">📧</span>
+                    <input type="email" name="email" class="form-control" placeholder="Enter your email" required value="{% if request.POST.email %}{{ request.POST.email }}{% endif %}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-icon">🔒</span>
+                    <input type="password" name="password" class="form-control" placeholder="Create a password (min 6 characters)" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Referral Code (Optional)</label>
+                <div class="input-group">
+                    <span class="input-group-icon">🎁</span>
+                    <input type="text" name="referral_code" class="form-control" placeholder="Enter referral code" value="{% if ref_code %}{{ ref_code }}{% elif request.POST.referral_code %}{{ request.POST.referral_code }}{% endif %}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-check">
+                    <input type="checkbox" name="terms" required>
+                    <span class="form-check-label">
+                        <span class="form-check-custom"></span>
+                        I agree to the <a href="#">Terms & Conditions</a>
+                    </span>
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                Sign Up & Get ₹50 Bonus
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
+        </div>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+    background: var(--bg-primary);
+}
+
+.auth-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    width: 100%;
+    max-width: 400px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.auth-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.logo-icon {
+    font-size: 2.5rem;
+}
+
+.auth-logo h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.auth-subtitle {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.auth-form {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.forgot-link {
+    font-size: 0.875rem;
+    color: var(--primary-color);
+}
+
+.auth-footer {
+    text-align: center;
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auth-footer p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.auth-footer a {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+</style>
+{% endblock %}

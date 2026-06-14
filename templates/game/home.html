@@ -1,0 +1,1083 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Home - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <span class="logo-icon">🎮</span>
+            <span class="logo-text">Color Prediction</span>
+        </div>
+        <div class="header-right">
+            <a href="{% url 'wallet' %}" class="header-btn">
+                <span>💰</span>
+                <span class="balance-display" id="header-balance">₹{{ wallet.get_total_balance|default:"0.00" }}</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Wallet Card -->
+        <div class="wallet-card">
+            <div class="wallet-label">Total Balance</div>
+            <div class="wallet-balance" id="card-balance">₹{{ wallet.get_total_balance|default:"0.00" }}</div>
+            <div class="wallet-actions">
+                <a href="{% url 'recharge' %}" class="wallet-btn">
+                    <span class="wallet-btn-icon">💳</span>
+                    <span>Deposit</span>
+                </a>
+                <a href="{% url 'withdraw' %}" class="wallet-btn">
+                    <span class="wallet-btn-icon">💵</span>
+                    <span>Withdraw</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Game Tabs -->
+        <div class="game-tabs">
+            {% for room in game_rooms %}
+            <button class="game-tab {% if forloop.first %}active{% endif %}" data-room="{{ room.name }}">
+                {{ room.get_name_display }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <!-- Timer Display -->
+        <div class="timer-display">
+            <div class="timer-label">Time Remaining</div>
+            <div class="timer-value" id="timer">00:30</div>
+            <div class="game-id" id="game-id">Loading...</div>
+        </div>
+
+        <!-- Recent Results -->
+        <div class="recent-results">
+            <div class="section-header">
+                <span class="section-title">Recent Results</span>
+                <a href="{% url 'game_history' %}" class="view-all">View All</a>
+            </div>
+            <div class="result-balls" id="result-balls">
+                <!-- Results will be loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Color Betting Buttons -->
+        <div class="betting-section">
+            <div class="section-header">
+                <span class="section-title">Select Color</span>
+            </div>
+            <div class="color-buttons">
+                <button class="color-btn green" data-color="green" onclick="openBetModal('color', 'green')">
+                    Green
+                    <span class="multiplier">2x</span>
+                </button>
+                <button class="color-btn violet" data-color="violet" onclick="openBetModal('color', 'violet')">
+                    Violet
+                    <span class="multiplier">3x</span>
+                </button>
+                <button class="color-btn red" data-color="red" onclick="openBetModal('color', 'red')">
+                    Red
+                    <span class="multiplier">2x</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Number Betting Section -->
+        <div class="betting-section">
+            <div class="section-header">
+                <span class="section-title">Select Number</span>
+            </div>
+            <div class="number-buttons">
+                <button class="number-btn violet-num" data-number="0" onclick="openBetModal('number', '0')">0</button>
+                <button class="number-btn green-num" data-number="1" onclick="openBetModal('number', '1')">1</button>
+                <button class="number-btn red-num" data-number="2" onclick="openBetModal('number', '2')">2</button>
+                <button class="number-btn green-num" data-number="3" onclick="openBetModal('number', '3')">3</button>
+                <button class="number-btn red-num" data-number="4" onclick="openBetModal('number', '4')">4</button>
+                <button class="number-btn violet-num" data-number="5" onclick="openBetModal('number', '5')">5</button>
+                <button class="number-btn red-num" data-number="6" onclick="openBetModal('number', '6')">6</button>
+                <button class="number-btn green-num" data-number="7" onclick="openBetModal('number', '7')">7</button>
+                <button class="number-btn red-num" data-number="8" onclick="openBetModal('number', '8')">8</button>
+                <button class="number-btn green-num" data-number="9" onclick="openBetModal('number', '9')">9</button>
+            </div>
+        </div>
+
+        <!-- Current Bets -->
+        <div class="current-bets card" id="current-bets-section" style="display: none;">
+            <div class="card-header">
+                <span class="card-title">Your Bets This Round</span>
+            </div>
+            <div class="bets-list" id="bets-list">
+                <!-- Bets will be loaded dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <!-- Bet Modal -->
+    <div class="modal-overlay" id="bet-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Place Bet</h3>
+                <button class="modal-close" onclick="closeBetModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="selected-option" id="selected-option">
+                    <!-- Selected color/number display -->
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Bet Amount (₹)</label>
+                    <input type="number" id="bet-amount" class="form-control" placeholder="Enter amount" min="1" max="50000" value="10">
+                </div>
+                
+                <div class="quick-amounts">
+                    {% for amount in quick_amounts %}
+                    <button class="quick-amount" onclick="selectAmount({{ amount }})">₹{{ amount }}</button>
+                    {% endfor %}
+                </div>
+                
+                <div class="potential-win">
+                    <span>Potential Win:</span>
+                    <span id="potential-win">₹20</span>
+                </div>
+                
+                <button class="btn btn-primary btn-block btn-lg" onclick="placeBet()">
+                    Confirm Bet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Popup -->
+    <div class="result-popup" id="result-popup">
+        <div class="result-popup-icon" id="result-icon">🎉</div>
+        <div class="result-popup-title" id="result-title">Congratulations!</div>
+        <div class="result-popup-amount" id="result-amount"></div>
+    </div>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.logo-icon {
+    font-size: 1.5rem;
+}
+
+.logo-text {
+    font-weight: 700;
+    font-size: 1.125rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.balance-display {
+    font-weight: 600;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.wallet-card {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    color: white;
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--glow-primary);
+}
+
+.wallet-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+.wallet-balance {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: var(--spacing-sm) 0;
+}
+
+.wallet-details {
+    display: flex;
+    gap: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+}
+
+.wallet-detail {
+    flex: 1;
+    text-align: center;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    display: block;
+}
+
+.detail-value {
+    font-size: 1rem;
+    font-weight: 600;
+    display: block;
+    margin-top: var(--spacing-xs);
+}
+
+.wallet-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+.wallet-btn {
+    flex: 1;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-md);
+    color: white;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-weight: 600;
+    transition: all var(--transition-normal);
+}
+
+.wallet-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.game-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    background: var(--bg-secondary);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-lg);
+}
+
+.game-tab {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.game-tab.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.timer-display {
+    text-align: center;
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.timer-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.timer-value.critical {
+    color: var(--color-red);
+    animation: pulse 1s infinite;
+}
+
+.game-id {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-family: monospace;
+    margin-top: var(--spacing-sm);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.section-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.view-all {
+    font-size: 0.875rem;
+    color: var(--primary-color);
+}
+
+.recent-results {
+    margin-bottom: var(--spacing-lg);
+}
+
+.result-balls {
+    display: flex;
+    gap: var(--spacing-sm);
+    overflow-x: auto;
+    padding: var(--spacing-sm) 0;
+    scrollbar-width: none;
+}
+
+.result-balls::-webkit-scrollbar {
+    display: none;
+}
+
+.result-ball {
+    min-width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.result-ball.green {
+    background: linear-gradient(135deg, var(--color-green), var(--color-green-light));
+}
+
+.result-ball.red {
+    background: linear-gradient(135deg, var(--color-red), var(--color-red-light));
+}
+
+.result-ball.violet {
+    background: linear-gradient(135deg, var(--color-violet), var(--color-violet-light));
+}
+
+.betting-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.color-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+}
+
+.color-btn {
+    padding: 20px;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    text-transform: uppercase;
+}
+
+.color-btn:hover {
+    transform: translateY(-4px);
+}
+
+.color-btn .multiplier {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    display: block;
+    margin-top: var(--spacing-xs);
+}
+
+.color-btn.green {
+    background: linear-gradient(135deg, var(--color-green), var(--color-green-light));
+    color: white;
+    box-shadow: var(--glow-green);
+}
+
+.color-btn.red {
+    background: linear-gradient(135deg, var(--color-red), var(--color-red-light));
+    color: white;
+    box-shadow: var(--glow-red);
+}
+
+.color-btn.violet {
+    background: linear-gradient(135deg, var(--color-violet), var(--color-violet-light));
+    color: white;
+    box-shadow: var(--glow-violet);
+}
+
+.number-buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--spacing-sm);
+}
+
+.number-btn {
+    aspect-ratio: 1;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 1.125rem;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.number-btn:hover {
+    transform: scale(1.1);
+}
+
+.number-btn.green-num:hover {
+    background: rgba(0, 200, 83, 0.2);
+    border-color: var(--color-green);
+    box-shadow: var(--glow-green);
+}
+
+.number-btn.red-num:hover {
+    background: rgba(255, 23, 68, 0.2);
+    border-color: var(--color-red);
+    box-shadow: var(--glow-red);
+}
+
+.number-btn.violet-num:hover {
+    background: rgba(170, 0, 255, 0.2);
+    border-color: var(--color-violet);
+    box-shadow: var(--glow-violet);
+}
+
+.current-bets {
+    margin-top: var(--spacing-lg);
+}
+
+.bet-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.bet-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.bet-selection {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: white;
+}
+
+.bet-selection.green { background: var(--color-green); }
+.bet-selection.red { background: var(--color-red); }
+.bet-selection.violet { background: var(--color-violet); }
+
+.bet-details {
+    text-align: right;
+}
+
+.bet-amount {
+    font-weight: 600;
+}
+
+.modal-body {
+    padding: var(--spacing-md) 0;
+}
+
+.selected-option {
+    text-align: center;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.quick-amounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.quick-amount {
+    padding: 8px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.quick-amount:hover, .quick-amount.selected {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.potential-win {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    background: rgba(0, 200, 83, 0.1);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-green);
+    font-weight: 600;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+    transition: all var(--transition-fast);
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+
+<script>
+// Game state
+let currentRoom = '{{ game_rooms.first.name }}';
+let currentTimer = 30;
+let selectedBetType = null;
+let selectedSelection = null;
+let betModalOpen = false;
+let localTimerInterval = null;
+let isPolling = false;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    initGameTabs();
+    fetchRoomData(true); // Load data immediately and start countdown
+});
+
+// Initialize game tabs
+function initGameTabs() {
+    const tabs = document.querySelectorAll('.game-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            if (this.classList.contains('active')) return;
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentRoom = this.dataset.room;
+            
+            // Clear countdown interval and show loading states
+            if (localTimerInterval) {
+                clearInterval(localTimerInterval);
+                localTimerInterval = null;
+            }
+            document.getElementById('timer').textContent = "Loading...";
+            document.getElementById('timer').classList.remove('critical');
+            document.getElementById('game-id').textContent = "Loading Period...";
+            
+            // Fetch immediately
+            fetchRoomData(true);
+        });
+    });
+}
+
+// Fetch room data
+function fetchRoomData(isSwitching = false) {
+    if (isPolling && !isSwitching) return;
+    isPolling = true;
+    
+    fetch(`/game/room/${currentRoom}/data/`)
+        .then(response => response.json())
+        .then(data => {
+            isPolling = false;
+            
+            // Ensure room hasn't changed since request was launched
+            if (data.room !== currentRoom) return;
+            
+            document.getElementById('game-id').textContent = `Period: ${data.game_id}`;
+            currentTimer = Math.ceil(data.time_remaining);
+            
+            updateResults(data.results);
+            updateCurrentBets(data.user_bets);
+            
+            if (data.wallet) {
+                updateWalletDisplay(data.wallet);
+            }
+            
+            // Check for previous period bet outcomes
+            if (data.previous_period && data.previous_bets && data.previous_bets.length > 0) {
+                checkAndShowResultPopup(data.previous_period, data.previous_bets);
+            }
+            
+            if (isSwitching || !localTimerInterval) {
+                startCountdown();
+            }
+        })
+        .catch(err => {
+            isPolling = false;
+            console.error('Error loading room data:', err);
+        });
+}
+
+// Start local timer countdown
+function startCountdown() {
+    if (localTimerInterval) {
+        clearInterval(localTimerInterval);
+    }
+    
+    updateTimerDisplay();
+    
+    localTimerInterval = setInterval(() => {
+        if (currentTimer > 0) {
+            currentTimer--;
+            updateTimerDisplay();
+        } else {
+            clearInterval(localTimerInterval);
+            localTimerInterval = null;
+            document.getElementById('timer').textContent = "00:00";
+            document.getElementById('timer').classList.add('critical');
+            disableBettingButtons(true, "Waiting for result...");
+            
+            // Start polling until new round begins
+            pollForNextRound();
+        }
+    }, 1000);
+}
+
+// Update countdown view
+function updateTimerDisplay() {
+    const timerEl = document.getElementById('timer');
+    const minutes = Math.floor(currentTimer / 60);
+    const seconds = currentTimer % 60;
+    timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (currentTimer <= 5) {
+        timerEl.classList.add('critical');
+        disableBettingButtons(true, `Betting Closed (${currentTimer}s)`);
+        if (betModalOpen) {
+            closeBetModal();
+        }
+    } else {
+        timerEl.classList.remove('critical');
+        disableBettingButtons(false);
+    }
+}
+
+// Disable/enable color & number buttons
+function disableBettingButtons(disable, message = "") {
+    const buttons = document.querySelectorAll('.color-btn, .number-btn');
+    buttons.forEach(btn => {
+        btn.disabled = disable;
+        if (disable) {
+            btn.classList.add('btn-disabled');
+        } else {
+            btn.classList.remove('btn-disabled');
+        }
+    });
+    
+    let banner = document.getElementById('betting-closed-banner');
+    if (disable) {
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'betting-closed-banner';
+            banner.className = 'betting-closed-banner';
+            
+            // Find parent of betting-section to insert banner above it
+            const bettingSection = document.querySelector('.betting-section');
+            if (bettingSection) {
+                bettingSection.parentNode.insertBefore(banner, bettingSection);
+            }
+        }
+        banner.textContent = message;
+        banner.style.display = 'block';
+    } else {
+        if (banner) {
+            banner.style.display = 'none';
+        }
+    }
+}
+
+// Poll endpoint at timer expiration
+function pollForNextRound() {
+    let attempts = 0;
+    const pollInterval = setInterval(() => {
+        attempts++;
+        if (attempts > 20) { // Limit to 30 seconds of polling
+            clearInterval(pollInterval);
+            console.warn('Polling timeout: next round took too long');
+            return;
+        }
+        
+        fetch(`/game/room/${currentRoom}/data/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.room === currentRoom && data.time_remaining > 5) {
+                    clearInterval(pollInterval);
+                    
+                    document.getElementById('game-id').textContent = `Period: ${data.game_id}`;
+                    currentTimer = Math.ceil(data.time_remaining);
+                    
+                    updateResults(data.results);
+                    updateCurrentBets(data.user_bets);
+                    
+                    if (data.wallet) {
+                        updateWalletDisplay(data.wallet);
+                    }
+                    
+                    if (data.previous_period && data.previous_bets && data.previous_bets.length > 0) {
+                        checkAndShowResultPopup(data.previous_period, data.previous_bets);
+                    }
+                    
+                    startCountdown();
+                }
+            })
+            .catch(err => console.error('Error polling next round:', err));
+    }, 1500);
+}
+
+// Show win/loss result popup
+function checkAndShowResultPopup(period, bets) {
+    const key = `result_shown_${currentRoom}`;
+    const lastShown = localStorage.getItem(key);
+    if (lastShown === period) return;
+    
+    let totalBet = 0;
+    let totalWin = 0;
+    let wonAny = false;
+    let lostAny = false;
+    
+    bets.forEach(bet => {
+        totalBet += parseFloat(bet.amount);
+        if (bet.status === 'won') {
+            totalWin += parseFloat(bet.winning_amount);
+            wonAny = true;
+        } else if (bet.status === 'lost') {
+            lostAny = true;
+        }
+    });
+    
+    const popup = document.getElementById('result-popup');
+    const icon = document.getElementById('result-icon');
+    const title = document.getElementById('result-title');
+    const amountEl = document.getElementById('result-amount');
+    
+    if (wonAny) {
+        popup.className = 'result-popup active win';
+        icon.textContent = '🎉';
+        title.textContent = 'Congratulations!';
+        amountEl.textContent = `Won ₹${totalWin.toFixed(2)}`;
+        amountEl.style.color = 'var(--color-green)';
+    } else if (lostAny) {
+        popup.className = 'result-popup active lose';
+        icon.textContent = '😞';
+        title.textContent = 'Better Luck Next Time!';
+        amountEl.textContent = `Lost ₹${totalBet.toFixed(2)}`;
+        amountEl.style.color = 'var(--color-red)';
+    } else {
+        return;
+    }
+    
+    localStorage.setItem(key, period);
+    
+    setTimeout(() => {
+        popup.classList.remove('active');
+    }, 4000);
+}
+
+// Update results display
+function updateResults(results) {
+    const container = document.getElementById('result-balls');
+    container.innerHTML = results.map(r => 
+        `<div class="result-ball ${r.color}">${r.number}</div>`
+    ).join('');
+}
+
+// Update current bets
+function updateCurrentBets(bets) {
+    const section = document.getElementById('current-bets-section');
+    const list = document.getElementById('bets-list');
+    
+    if (bets.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    section.style.display = 'block';
+    list.innerHTML = bets.map(bet => `
+        <div class="bet-item">
+            <div class="bet-info">
+                <div class="bet-selection ${bet.selection}">${bet.selection}</div>
+                <div>
+                    <div class="bet-type">${bet.type}</div>
+                </div>
+            </div>
+            <div class="bet-details">
+                <div class="bet-amount">₹${bet.amount}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Update wallet display
+function updateWalletDisplay(wallet) {
+    const headerBalanceEl = document.getElementById('header-balance');
+    const cardBalanceEl = document.getElementById('card-balance');
+    const depositEl = document.getElementById('wallet-deposit');
+    const winningEl = document.getElementById('wallet-winning');
+    const bonusEl = document.getElementById('wallet-bonus');
+    
+    if (wallet.total) {
+        const totalVal = `₹${parseFloat(wallet.total).toFixed(2)}`;
+        if (headerBalanceEl) headerBalanceEl.textContent = totalVal;
+        if (cardBalanceEl) cardBalanceEl.textContent = totalVal;
+    }
+    if (wallet.deposit && depositEl) {
+        depositEl.textContent = `₹${parseFloat(wallet.deposit).toFixed(2)}`;
+    }
+    if (wallet.winning && winningEl) {
+        winningEl.textContent = `₹${parseFloat(wallet.winning).toFixed(2)}`;
+    }
+    if (wallet.bonus && bonusEl) {
+        bonusEl.textContent = `₹${parseFloat(wallet.bonus).toFixed(2)}`;
+    }
+}
+
+// Open bet modal
+function openBetModal(type, selection) {
+    selectedBetType = type;
+    selectedSelection = selection;
+    
+    const modal = document.getElementById('bet-modal');
+    const title = document.getElementById('modal-title');
+    const option = document.getElementById('selected-option');
+    
+    title.textContent = `Bet on ${selection.charAt(0).toUpperCase() + selection.slice(1)}`;
+    
+    let colorClass = selection;
+    if (type === 'number') {
+        const num = parseInt(selection);
+        if ([0, 5].includes(num)) colorClass = 'violet';
+        else if ([1, 3, 7, 9].includes(num)) colorClass = 'green';
+        else colorClass = 'red';
+    }
+    
+    option.innerHTML = `
+        <div class="bet-selection ${colorClass}" style="width: 48px; height: 48px; margin: 0 auto 8px; font-size: 1.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white;">
+            ${selection}
+        </div>
+    `;
+    
+    modal.classList.add('active');
+    betModalOpen = true;
+    updatePotentialWin();
+}
+
+// Close bet modal
+function closeBetModal() {
+    document.getElementById('bet-modal').classList.remove('active');
+    selectedBetType = null;
+    selectedSelection = null;
+    betModalOpen = false;
+}
+
+// Select quick amount
+function selectAmount(amount) {
+    document.getElementById('bet-amount').value = amount;
+    document.querySelectorAll('.quick-amount').forEach(btn => {
+        btn.classList.remove('selected');
+        if (parseInt(btn.textContent.replace('₹', '')) === amount) {
+            btn.classList.add('selected');
+        }
+    });
+    updatePotentialWin();
+}
+
+// Update potential win
+function updatePotentialWin() {
+    const amount = parseFloat(document.getElementById('bet-amount').value) || 0;
+    let multiplier = 2;
+    
+    if (selectedSelection === 'violet') multiplier = 3;
+    else if (selectedBetType === 'number') {
+        const num = parseInt(selectedSelection);
+        if ([0, 5].includes(num)) multiplier = 3;
+        else multiplier = 2;
+    }
+    
+    document.getElementById('potential-win').textContent = `₹${(amount * multiplier).toFixed(2)}`;
+}
+
+// Place bet
+function placeBet() {
+    const amount = parseFloat(document.getElementById('bet-amount').value);
+    
+    if (!amount || amount < 1 || amount > 50000) {
+        alert('Please enter a valid amount between ₹1 and ₹50,000');
+        return;
+    }
+    
+    fetch('/game/bet/place/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            room: currentRoom,
+            bet_type: selectedBetType,
+            selection: selectedSelection,
+            amount: amount
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeBetModal();
+            showBetSuccess(data.message);
+            
+            // Reload room data immediately to show current bets & updated balance
+            fetchRoomData(false);
+        } else {
+            alert(data.error || 'Failed to place bet');
+        }
+    })
+    .catch(err => {
+        console.error('Error placing bet:', err);
+        alert('Failed to place bet. Please try again.');
+    });
+}
+
+// Show bet success toast
+function showBetSuccess(message) {
+    const popup = document.getElementById('result-popup');
+    popup.className = 'result-popup active win';
+    document.getElementById('result-icon').textContent = '✅';
+    document.getElementById('result-title').textContent = 'Bet Placed!';
+    document.getElementById('result-amount').textContent = message;
+    
+    setTimeout(() => {
+        popup.classList.remove('active');
+    }, 2000);
+}
+
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Update bet amount input listener
+document.addEventListener('DOMContentLoaded', function() {
+    const amountInput = document.getElementById('bet-amount');
+    if (amountInput) {
+        amountInput.addEventListener('input', updatePotentialWin);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,362 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}My Bets - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'game_home' %}" class="back-btn">←</a>
+            <span class="page-title">My Bets</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Promotions Info Banner -->
+        <div class="promo-banner card mb-3">
+            <div class="promo-header">
+                <span>🎁 Player Perks & Promotions</span>
+            </div>
+            <div class="promo-items">
+                <div class="promo-item">
+                    <span class="promo-icon">👥</span>
+                    <div class="promo-text">
+                        <strong>Referral Commission Reward:</strong> Share your referral link with friends and earn cash rewards automatically on every game they play!
+                    </div>
+                </div>
+                <div class="promo-item">
+                    <span class="promo-icon">💰</span>
+                    <div class="promo-text">
+                        <strong>First Recharge Offer:</strong> Get an extra <strong>20% cash bonus</strong> added directly to your deposit balance on your first recharge request!
+                    </div>
+                </div>
+                <div class="promo-item">
+                    <span class="promo-icon">⚡</span>
+                    <div class="promo-text">
+                        <strong>Fast Withdrawals:</strong> Withdraw your winnings instantly. Direct transfers to your account processed <strong>in just 10 minutes</strong>.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total }}</div>
+                <div class="stat-label">Total Bets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.won }}</div>
+                <div class="stat-label">Won</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.lost }}</div>
+                <div class="stat-label">Lost</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--color-green);">₹{{ stats.total_won|default:"0.00" }}</div>
+                <div class="stat-label">Total Won</div>
+            </div>
+        </div>
+
+        <!-- Bets List -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Bet History</span>
+            </div>
+            
+            {% if bets %}
+                <div class="bets-list">
+                    {% for bet in bets %}
+                    <div class="bet-history-item">
+                        <div class="bet-selection-badge {{ bet.selection }}">
+                            {% if bet.bet_type == 'color' %}
+                                {{ bet.selection|upper }}
+                            {% else %}
+                                #{{ bet.selection }}
+                            {% endif %}
+                        </div>
+                        <div class="bet-info">
+                            <div class="bet-room">{{ bet.room.get_name_display }}</div>
+                            <div class="bet-period">{{ bet.period }}</div>
+                        </div>
+                        <div class="bet-result">
+                            <div class="bet-amount">₹{{ bet.amount }}</div>
+                            <div class="bet-status {% if bet.status == 'won' %}won{% elif bet.status == 'lost' %}lost{% else %}pending{% endif %}">
+                                {% if bet.status == 'won' %}+₹{{ bet.winning_amount }}{% endif %}
+                                {{ bet.get_status_display }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-title">No bets yet</div>
+                    <p>Start playing to see your bet history</p>
+                    <a href="{% url 'game_home' %}" class="btn btn-primary">Play Now</a>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item active">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.promo-banner {
+    background: linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(0, 212, 170, 0.05));
+    border: 1px solid rgba(108, 99, 255, 0.2);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.promo-header {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.promo-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.promo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.03);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all var(--transition-fast);
+}
+
+.promo-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(108, 99, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.promo-icon {
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+
+.promo-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.promo-text strong {
+    color: var(--primary-color);
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+.bets-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.bet-history-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bet-selection-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: white;
+}
+
+.bet-selection-badge.green { background: var(--color-green); }
+.bet-selection-badge.red { background: var(--color-red); }
+.bet-selection-badge.violet { background: var(--color-violet); }
+
+.bet-info {
+    flex: 1;
+}
+
+.bet-room {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.bet-period {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: monospace;
+    margin-top: var(--spacing-xs);
+}
+
+.bet-result {
+    text-align: right;
+}
+
+.bet-amount {
+    font-weight: 600;
+}
+
+.bet-status {
+    font-size: 0.75rem;
+    margin-top: var(--spacing-xs);
+}
+
+.bet-status.won {
+    color: var(--color-green);
+}
+
+.bet-status.lost {
+    color: var(--color-red);
+}
+
+.bet-status.pending {
+    color: #FFB800;
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxl);
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.empty-state-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+{% endblock %}

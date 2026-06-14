@@ -1,0 +1,151 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Login - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <span class="logo-icon">🎮</span>
+                <h1>Color Prediction</h1>
+            </div>
+            <p class="auth-subtitle">Login to your account</p>
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label">Mobile Number / Username</label>
+                <div class="input-group">
+                    <span class="input-group-icon">📱</span>
+                    <input type="text" name="mobile" class="form-control" placeholder="Enter mobile number or username" required value="{% if request.POST.mobile %}{{ request.POST.mobile }}{% endif %}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-icon">🔒</span>
+                    <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+                </div>
+            </div>
+            
+            <div class="form-options">
+                <label class="form-check">
+                    <input type="checkbox" name="remember">
+                    <span class="form-check-label">
+                        <span class="form-check-custom"></span>
+                        Remember me
+                    </span>
+                </label>
+                <a href="{% url 'forgot_password' %}" class="forgot-link">Forgot Password?</a>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                Login
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="{% url 'register' %}">Sign Up</a></p>
+        </div>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+    background: var(--bg-primary);
+}
+
+.auth-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    width: 100%;
+    max-width: 400px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.auth-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.logo-icon {
+    font-size: 2.5rem;
+}
+
+.auth-logo h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.auth-subtitle {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.auth-form {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.forgot-link {
+    font-size: 0.875rem;
+    color: var(--primary-color);
+}
+
+.auth-footer {
+    text-align: center;
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auth-footer p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.auth-footer a {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+</style>
+{% endblock %}

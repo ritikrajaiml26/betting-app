@@ -1,0 +1,147 @@
+{% extends 'admin_custom/base_admin.html' %}
+
+{% block title %}Deposit Requests Management{% endblock %}
+{% block page_title %}Deposit Requests Management{% endblock %}
+{% block nav_recharges %}active{% endblock %}
+
+{% block admin_content %}
+<!-- Pending Recharges Card -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title" style="color: var(--color-warning);">Pending Deposit Requests ({{ pending_recharges|length }})</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User Details</th>
+                    <th>Amount</th>
+                    <th>UTR / Ref Number</th>
+                    <th>QR / UPI Code Used</th>
+                    <th>Submitted Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in pending_recharges %}
+                <tr>
+                    <td><code>#{{ r.id }}</code></td>
+                    <td>
+                        <strong>{{ r.user.name }}</strong><br>
+                        <small style="color: var(--text-secondary);">@{{ r.user.username }}</small><br>
+                        <small style="color: var(--text-secondary);">{{ r.user.mobile }}</small>
+                    </td>
+                    <td style="color: var(--color-green); font-size: 1.1rem; font-weight: 700;">₹{{ r.amount }}</td>
+                    <td><code style="font-size: 1rem; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px;">{{ r.utr_number }}</code></td>
+                    <td>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">UPI: {{ r.upi_id_used|default:"Default" }}</span>
+                    </td>
+                    <td><small>{{ r.created_at|date:"d M Y H:i" }}</small></td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{% url 'admin_recharge_approve' r.id %}" class="btn btn-sm btn-success" onclick="return confirm('Approve deposit of ₹{{ r.amount }} for {{ r.user.username }}?')">Approve</a>
+                            <button class="btn btn-sm btn-danger" onclick="openRejectModal({{ r.id }}, '{{ r.user.username }}', '{{ r.amount }}')">Reject</button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 32px;">No pending deposit requests.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Processed Recharges Card -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Processed Requests (Last 100)</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>UTR Number</th>
+                    <th>Status</th>
+                    <th>Processed By</th>
+                    <th>Processed Time</th>
+                    <th>Rejection Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in processed_recharges %}
+                <tr>
+                    <td><code>#{{ r.id }}</code></td>
+                    <td>
+                        <strong>{{ r.user.username }}</strong><br>
+                        <small style="color: var(--text-secondary);">{{ r.user.mobile }}</small>
+                    </td>
+                    <td style="font-weight: 700; color: {% if r.status == 'approved' %}var(--color-green){% else %}var(--color-red){% endif %};">₹{{ r.amount }}</td>
+                    <td><code>{{ r.utr_number }}</code></td>
+                    <td>
+                        <span class="badge {% if r.status == 'approved' %}badge-success{% else %}badge-danger{% endif %}">
+                            {{ r.get_status_display }}
+                        </span>
+                    </td>
+                    <td><small>{{ r.processed_by.username|default:"-" }}</small></td>
+                    <td><small>{{ r.processed_at|date:"d M H:i"|default:"-" }}</small></td>
+                    <td style="max-width: 200px; font-size: 0.8rem; color: var(--text-secondary);"><small>{{ r.rejection_reason|default:"-" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 24px;">No processed deposit records.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Rejection Modal Backdrop -->
+<div id="rejectModal" style="display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000;">
+    <div class="card" style="width: 100%; max-width: 450px; margin: 16px;">
+        <div class="card-header">
+            <span class="card-title" style="color: var(--color-red);">Reject Deposit Request</span>
+        </div>
+        <form id="rejectForm" method="post" action="">
+            {% csrf_token %}
+            <p style="font-size: 0.95rem; margin-bottom: 16px;">
+                You are rejecting a deposit of <strong id="rejectModalAmount"></strong> from user <strong id="rejectModalUser"></strong>.
+            </p>
+            <div class="form-group">
+                <label class="form-label">Rejection Reason</label>
+                <input type="text" name="reason" class="form-control" placeholder="Enter reason (e.g. UTR mismatch)" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.05);" onclick="closeRejectModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Confirm Reject</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openRejectModal(rechargeId, username, amount) {
+    const modal = document.getElementById('rejectModal');
+    const form = document.getElementById('rejectForm');
+    
+    document.getElementById('rejectModalUser').textContent = username;
+    document.getElementById('rejectModalAmount').textContent = '₹' + amount;
+    
+    form.action = '/admin-dashboard/recharges/' + rechargeId + '/reject/';
+    modal.style.display = 'flex';
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+}
+</script>
+{% endblock %}

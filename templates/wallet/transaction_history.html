@@ -1,0 +1,333 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Transaction History - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'wallet' %}" class="back-btn">←</a>
+            <span class="page-title">Transactions</span>
+        </div>
+    </header>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+        <a href="{% url 'transaction_history' %}" class="filter-tab {% if not request.GET.type %}active{% endif %}">
+            All
+        </a>
+        <a href="?type=recharge" class="filter-tab {% if request.GET.type == 'recharge' %}active{% endif %}">
+            Recharge
+        </a>
+        <a href="?type=withdraw" class="filter-tab {% if request.GET.type == 'withdraw' %}active{% endif %}">
+            Withdraw
+        </a>
+        <a href="?type=bet" class="filter-tab {% if request.GET.type == 'bet' %}active{% endif %}">
+            Bets
+        </a>
+        <a href="?type=win" class="filter-tab {% if request.GET.type == 'win' %}active{% endif %}">
+            Wins
+        </a>
+    </div>
+
+    <main class="main-content">
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">Total Recharge</div>
+                <div class="summary-value positive">₹{{ summary.total_recharge|default:"0.00" }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Withdraw</div>
+                <div class="summary-value negative">₹{{ summary.total_withdraw|default:"0.00" }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Bet</div>
+                <div class="summary-value">₹{{ summary.total_bet|default:"0.00" }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Win</div>
+                <div class="summary-value positive">₹{{ summary.total_win|default:"0.00" }}</div>
+            </div>
+        </div>
+
+        <!-- Transaction List -->
+        {% if transactions %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Recent Transactions</span>
+                <span class="text-muted">{{ transactions.count }} records</span>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                {% for tx in transactions %}
+                <div class="transaction-item">
+                    <div class="tx-icon {% if tx.transaction_type in 'recharge,win,referral_bonus,signup_bonus' %}positive{% else %}negative{% endif %}">
+                        {% if tx.transaction_type == 'recharge' %}💳
+                        {% elif tx.transaction_type == 'withdraw' %}💵
+                        {% elif tx.transaction_type == 'bet' %}📝
+                        {% elif tx.transaction_type == 'win' %}🎉
+                        {% elif tx.transaction_type == 'lose' %}❌
+                        {% elif tx.transaction_type == 'referral_bonus' %}🎁
+                        {% elif tx.transaction_type == 'signup_bonus' %}🎁
+                        {% elif tx.transaction_type == 'transfer' %}🔄
+                        {% else %}💰{% endif %}
+                    </div>
+                    <div class="tx-info">
+                        <div class="tx-title">{{ tx.get_transaction_type_display }}</div>
+                        <div class="tx-subtitle">{{ tx.description|truncatechars:40 }}</div>
+                        <div class="tx-date">{{ tx.created_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <div class="tx-amount {% if tx.transaction_type in 'recharge,win,referral_bonus,signup_bonus' %}positive{% else %}negative{% endif %}">
+                        {% if tx.transaction_type in 'recharge,win,referral_bonus,signup_bonus' %}+{% endif %}₹{{ tx.amount }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-title">No transactions yet</div>
+            <div class="empty-state-subtitle">Your transaction history will appear here</div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item active">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-secondary);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.filter-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.filter-tab {
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+}
+
+.filter-tab.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+}
+
+.summary-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    text-align: center;
+}
+
+.summary-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: var(--spacing-xs);
+}
+
+.summary-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.summary-value.positive {
+    color: var(--color-green);
+}
+
+.summary-value.negative {
+    color: var(--color-red);
+}
+
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.tx-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: var(--bg-secondary);
+}
+
+.tx-icon.positive {
+    background: rgba(0, 200, 83, 0.1);
+}
+
+.tx-icon.negative {
+    background: rgba(255, 23, 68, 0.1);
+}
+
+.tx-info {
+    flex: 1;
+}
+
+.tx-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.tx-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.tx-date {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.tx-amount {
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.tx-amount.positive {
+    color: var(--color-green);
+}
+
+.tx-amount.negative {
+    color: var(--color-red);
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxl);
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.empty-state-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.empty-state-subtitle {
+    font-size: 0.875rem;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+{% endblock %}

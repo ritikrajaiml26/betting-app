@@ -1,0 +1,370 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Withdraw - Color Prediction{% endblock %}
+
+{% block content %}
+<div style="display: none;">{% csrf_token %}</div>
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'wallet' %}" class="back-btn">←</a>
+            <span class="page-title">Withdraw</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Balance Info -->
+        <div class="balance-card">
+            <div class="balance-label">Available for Withdrawal</div>
+            <div class="balance-amount">₹{{ wallet.winning_balance|default:"0.00" }}</div>
+            <div class="balance-note">Only winning wallet balance can be withdrawn</div>
+        </div>
+
+        {% if not can_withdraw %}
+        <div class="alert alert-warning">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <div class="alert-title">First Recharge Required</div>
+                <div class="alert-message">You must complete your first recharge before you can withdraw.</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not bank_detail or not bank_detail.is_verified %}
+        <div class="alert alert-info">
+            <div class="alert-icon">📋</div>
+            <div class="alert-content">
+                <div class="alert-title">Add Bank Details</div>
+                <div class="alert-message">Please add and verify your bank details before withdrawing.</div>
+                <a href="{% url 'add_bank' %}" class="btn btn-sm btn-primary" style="margin-top: 8px;">Add Details</a>
+            </div>
+        </div>
+        {% else %}
+        <!-- Withdraw Form -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Withdraw Funds</span>
+            </div>
+            <div class="card-body">
+                <div class="bank-info">
+                    <div class="bank-info-label">Withdraw to</div>
+                    <div class="bank-info-value">{{ bank_detail.bank_name }}</div>
+                    <div class="bank-info-sub">{{ bank_detail.upi_id }}</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Amount (₹)</label>
+                    <input type="number" id="amount" class="form-control" placeholder="Enter amount" min="50" max="50000">
+                    <span class="help-text" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">
+                        * Limit: ₹50 - ₹50,000. Maximum 3 withdrawals per 24 hours.
+                    </span>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="submitWithdraw()" {% if not can_withdraw %}disabled{% endif %}>
+                    Withdraw
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Withdraw History -->
+        {% if withdraws %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Withdrawal History</span>
+            </div>
+            <div class="card-body">
+                {% for withdraw in withdraws %}
+                <div class="history-item">
+                    <div class="history-info">
+                        <div class="history-amount">₹{{ withdraw.amount }}</div>
+                        <div class="history-details">
+                            {{ withdraw.upi_id }} • {{ withdraw.created_at|date:"M d, Y H:i" }}
+                        </div>
+                    </div>
+                    <span class="status-badge {{ withdraw.status }}">
+                        {{ withdraw.get_status_display }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item active">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.balance-card {
+    background: linear-gradient(135deg, var(--color-green), var(--color-green-light));
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    color: white;
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.balance-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.9;
+}
+
+.balance-amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: var(--spacing-sm) 0;
+}
+
+.balance-note {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.alert {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.alert-warning {
+    background: rgba(255, 184, 0, 0.1);
+    border: 1px solid rgba(255, 184, 0, 0.3);
+}
+
+.alert-info {
+    background: rgba(108, 99, 255, 0.1);
+    border: 1px solid rgba(108, 99, 255, 0.3);
+}
+
+.alert-icon {
+    font-size: 1.5rem;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-title {
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.alert-message {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.bank-info {
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.bank-info-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.bank-info-value {
+    font-weight: 600;
+    margin-top: var(--spacing-xs);
+}
+
+.bank-info-sub {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.history-info {
+    flex: 1;
+}
+
+.history-amount {
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.history-details {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.pending {
+    background: rgba(255, 184, 0, 0.2);
+    color: #FFB800;
+}
+
+.status-badge.processing {
+    background: rgba(108, 99, 255, 0.2);
+    color: var(--primary-color);
+}
+
+.status-badge.success {
+    background: rgba(0, 200, 83, 0.2);
+    color: var(--color-green);
+}
+
+.status-badge.rejected {
+    background: rgba(255, 23, 68, 0.2);
+    color: var(--color-red);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+
+<script>
+function submitWithdraw() {
+    const amount = document.getElementById('amount').value;
+
+    if (!amount || parseFloat(amount) < 50 || parseFloat(amount) > 50000) {
+        alert('Please enter an amount between ₹50 and ₹50,000');
+        return;
+    }
+
+    fetch('{% url "withdraw" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            amount: parseFloat(amount)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Withdrawal request submitted successfully!');
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to submit withdrawal');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Failed to submit withdrawal');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

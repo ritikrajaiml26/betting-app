@@ -1,0 +1,289 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Transfer Bonus - Color Prediction{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <a href="{% url 'wallet' %}" class="back-btn">←</a>
+            <span class="page-title">Transfer Bonus</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Balance Info -->
+        <div class="balance-card bonus">
+            <div class="balance-label">Bonus Wallet Balance</div>
+            <div class="balance-amount">₹{{ wallet.bonus_balance|default:"0.00" }}</div>
+            <div class="balance-note">Transfer bonus to deposit wallet for gameplay</div>
+        </div>
+
+        <div class="info-box">
+            <div class="info-icon">ℹ️</div>
+            <div class="info-content">
+                <div class="info-title">About Bonus Wallet</div>
+                <div class="info-text">
+                    Bonus wallet contains signup and referral bonuses. Transfer funds to your deposit wallet to use them for betting.
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Form -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <span class="card-title">Transfer to Deposit</span>
+            </div>
+            <div class="card-body">
+                <div class="wallet-summary">
+                    <div class="wallet-summary-item">
+                        <span class="label">Bonus Wallet</span>
+                        <span class="value">₹{{ wallet.bonus_balance|default:"0.00" }}</span>
+                    </div>
+                    <div class="wallet-summary-arrow">→</div>
+                    <div class="wallet-summary-item">
+                        <span class="label">Deposit Wallet</span>
+                        <span class="value">₹{{ wallet.deposit_balance|default:"0.00" }}</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Amount to Transfer (₹)</label>
+                    <input type="number" id="amount" class="form-control" placeholder="Enter amount" min="1" max="{{ wallet.bonus_balance }}">
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="transferBonus()">
+                    Transfer Now
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{% url 'game_home' %}" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'my_bets' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Activity</span>
+        </a>
+        <a href="{% url 'referral_dashboard' %}" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Promotion</span>
+        </a>
+        <a href="{% url 'wallet' %}" class="nav-item active">
+            <span class="nav-icon">👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+.app-container {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding-bottom: 80px;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.back-btn {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    text-decoration: none;
+}
+
+.page-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.main-content {
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.balance-card {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    color: white;
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.balance-card.bonus {
+    background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+}
+
+.balance-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.9;
+}
+
+.balance-amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: var(--spacing-sm) 0;
+}
+
+.balance-note {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.info-box {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: rgba(108, 99, 255, 0.1);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(108, 99, 255, 0.2);
+}
+
+.info-icon {
+    font-size: 1.5rem;
+}
+
+.info-content {
+    flex: 1;
+}
+
+.info-title {
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.info-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.wallet-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.wallet-summary-item {
+    text-align: center;
+}
+
+.wallet-summary-item .label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: block;
+}
+
+.wallet-summary-item .value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.wallet-summary-arrow {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-sm) 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+}
+</style>
+
+<script>
+function transferBonus() {
+    const amount = document.getElementById('amount').value;
+
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+
+    fetch('{% url "transfer_bonus" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            amount: parseFloat(amount)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Bonus transferred successfully!');
+            location.reload();
+        } else {
+            alert(data.error || 'Transfer failed');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Transfer failed');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
