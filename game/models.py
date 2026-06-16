@@ -86,34 +86,24 @@ class GameRoom(models.Model):
     
     def get_current_game_id(self):
         """Generate current game ID based on date and period"""
-        now = datetime.now()
+        now = timezone.localtime(timezone.now())
         date_str = now.strftime('%Y%m%d')
         
-        if not self.current_period:
-            # Generate initial period based on time
-            if self.duration_seconds == 30:
-                # 30 second rooms: 2 per minute = ~2880 per day
-                period = (now.hour * 60 * 2) + (now.minute * 2) + (1 if now.second >= 30 else 0) + 1
-            elif self.duration_seconds == 60:
-                # 1 minute rooms: 1 per minute = 1440 per day
-                period = (now.hour * 60) + now.minute + 1
-            else:
-                # 3 minute rooms: 1 per 3 minutes = 480 per day
-                period = (now.hour * 20) + (now.minute // 3) + 1
-            
-            self.current_period = f"{date_str}{period:05d}"
-            self.save()
+        total_seconds_today = now.hour * 3600 + now.minute * 60 + now.second
+        period_index = total_seconds_today // self.duration_seconds + 1
+        expected_period = f"{date_str}{period_index:05d}"
         
+        if not self.current_game_start or self.current_period != expected_period:
+            self.start_new_game()
+            
         return self.current_period
     
     def get_time_remaining(self):
         """Get time remaining in current round (in seconds)"""
-        if not self.current_game_start:
-            return self.duration_seconds
-        
-        elapsed = (timezone.now() - self.current_game_start).total_seconds()
+        now = timezone.localtime(timezone.now())
+        total_seconds_today = now.hour * 3600 + now.minute * 60 + now.second
+        elapsed = total_seconds_today % self.duration_seconds
         remaining = self.duration_seconds - elapsed
-        
         if remaining <= 0:
             return 0
         return remaining
@@ -131,22 +121,16 @@ class GameRoom(models.Model):
             # Lock the row to prevent race conditions from concurrent requests
             room = GameRoom.objects.select_for_update().get(id=self.id)
             
-            now = datetime.now()
+            now = timezone.localtime(timezone.now())
             date_str = now.strftime('%Y%m%d')
             
-            # Calculate next period
-            if room.duration_seconds == 30:
-                period = (now.hour * 60 * 2) + (now.minute * 2) + (1 if now.second >= 30 else 0) + 1
-            elif room.duration_seconds == 60:
-                period = (now.hour * 60) + now.minute + 1
-            else:
-                period = (now.hour * 20) + (now.minute // 3) + 1
+            # Calculate current period index
+            total_seconds_today = now.hour * 3600 + now.minute * 60 + now.second
+            period_index = total_seconds_today // room.duration_seconds + 1
+            new_period = f"{date_str}{period_index:05d}"
             
-            new_period = f"{date_str}{period:05d}"
-            
-            # If the current period is already the calculated one, do not restart
+            # If the current period in DB is already the calculated one, just align context
             if room.current_period == new_period:
-                # Still update self context before returning
                 self.current_period = room.current_period
                 self.current_game_start = room.current_game_start
                 return room.current_period
@@ -155,12 +139,21 @@ class GameRoom(models.Model):
             
             # Update room to the new period
             room.current_period = new_period
-            room.current_game_start = timezone.now()
+            period_start_seconds = (period_index - 1) * room.duration_seconds
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(seconds=period_start_seconds)
+            room.current_game_start = start_time
             room.save()
             
             # Settle the old period
             if old_period:
                 room.settle_game_period(old_period)
+                
+            # Settle any other older pending periods that need settlement
+            from game.models import Bet
+            unsettled_bets = Bet.objects.filter(room=room, status='pending').exclude(period=new_period)
+            unsettled_periods = unsettled_bets.values_list('period', flat=True).distinct()
+            for p in unsettled_periods:
+                room.settle_game_period(p)
                 
             # Update self attributes to match database state
             self.current_period = room.current_period

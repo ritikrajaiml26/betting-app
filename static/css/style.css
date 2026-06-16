@@ -812,12 +812,14 @@ textarea.form-control {
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
     transition: all var(--transition-normal);
 }
 
 .modal-overlay.active {
     opacity: 1;
     visibility: visible;
+    pointer-events: all;
 }
 
 .modal {
@@ -882,6 +884,7 @@ textarea.form-control {
     text-align: center;
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
     transition: all var(--transition-normal);
     box-shadow: var(--shadow-lg);
     max-width: 350px;
@@ -891,6 +894,7 @@ textarea.form-control {
 .result-popup.active {
     opacity: 1;
     visibility: visible;
+    pointer-events: all;
     transform: translate(-50%, -50%) scale(1);
 }
 

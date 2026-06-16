@@ -124,7 +124,7 @@
                 <div class="transaction-list">
                     {% for tx in transactions %}
                     <div class="transaction-item">
-                        <div class="tx-icon {% if tx.amount > 0 %}positive{% else %}negative{% endif %}">
+                        <div class="tx-icon {% if tx.transaction_type in 'recharge,win,referral_bonus,signup_bonus' %}positive{% else %}negative{% endif %}">
                             {% if tx.transaction_type == 'recharge' %}💳
                             {% elif tx.transaction_type == 'withdraw' %}💵
                             {% elif tx.transaction_type == 'win' %}🎉
@@ -133,10 +133,13 @@
                         </div>
                         <div class="tx-info">
                             <div class="tx-title">{{ tx.get_transaction_type_display }}</div>
-                            <div class="tx-date">{{ tx.created_at|date:"M d, Y H:i" }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                                ID: <code>{{ tx.transaction_id }}</code> • <span style="font-weight: 700; color: {% if tx.display_status == 'success' %}#00E676{% else %}#FF1744{% endif %}; text-transform: uppercase;">{{ tx.display_status }}</span>
+                            </div>
+                            <div class="tx-date" style="margin-top: 2px;">{{ tx.created_at|date:"d M Y H:i:s" }}</div>
                         </div>
-                        <div class="tx-amount {% if tx.transaction_type in 'win,referral_bonus,signup_bonus' %}positive{% else %}negative{% endif %}">
-                            {% if tx.transaction_type in 'win,referral_bonus,signup_bonus' %}+{% endif %}₹{{ tx.amount }}
+                        <div class="tx-amount {% if tx.transaction_type in 'recharge,win,referral_bonus,signup_bonus' %}positive{% else %}negative{% endif %}">
+                            {% if tx.transaction_type in 'recharge,win,referral_bonus,signup_bonus' %}+{% endif %}₹{{ tx.amount }}
                         </div>
                     </div>
                     {% endfor %}

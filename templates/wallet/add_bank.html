@@ -22,18 +22,18 @@
             <div class="card-body">
                 <div class="form-group">
                     <label class="form-label">UPI ID</label>
-                    <input type="text" id="upi_id" class="form-control" placeholder="example@upi">
+                    <input type="text" id="upi_id" class="form-control" placeholder="example@upi" value="{{ bank_detail.upi_id|default:'' }}">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Bank Name</label>
-                    <input type="text" id="bank_name" class="form-control" placeholder="e.g., HDFC Bank">
+                    <input type="text" id="bank_name" class="form-control" placeholder="e.g., HDFC Bank" value="{{ bank_detail.bank_name|default:'' }}">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Account Holder Name</label>
-                    <input type="text" id="account_holder_name" class="form-control" placeholder="Name as per bank">
+                    <input type="text" id="account_holder_name" class="form-control" placeholder="Name as per bank" value="{{ bank_detail.account_holder_name|default:'' }}">
                 </div>
                 <button class="btn btn-primary btn-block" onclick="submitBankDetails()">
-                    Submit for Verification
+                    Save Details
                 </button>
             </div>
         </div>
@@ -189,7 +189,7 @@ function submitBankDetails() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Bank details submitted for verification!');
+            alert('Bank details saved successfully!');
             window.location.href = '{% url "withdraw" %}';
         } else {
             alert(data.error || 'Failed to add bank details');

@@ -213,7 +213,12 @@ def withdraw_view(request):
 
 @login_required
 def add_bank_details(request):
-    """Add bank details for withdrawal"""
+    """Add/Edit bank details for withdrawal"""
+    try:
+        bank_detail = BankDetail.objects.get(user=request.user)
+    except BankDetail.DoesNotExist:
+        bank_detail = None
+        
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -228,20 +233,22 @@ def add_bank_details(request):
             return JsonResponse({'error': 'All fields are required'}, status=400)
         
         # Check if already exists
-        bank_detail, created = BankDetail.objects.get_or_create(user=request.user)
-        
+        if not bank_detail:
+            bank_detail = BankDetail(user=request.user)
+            
         bank_detail.upi_id = upi_id
         bank_detail.bank_name = bank_name
         bank_detail.account_holder_name = account_holder_name
-        bank_detail.is_verified = False  # Needs re-verification
+        bank_detail.is_verified = True  # Auto-verify on save as per requirements
+        bank_detail.verified_at = timezone.now()
         bank_detail.save()
         
         return JsonResponse({
             'success': True,
-            'message': 'Bank details submitted for verification'
+            'message': 'Bank details saved successfully'
         })
     
-    return render(request, 'wallet/add_bank.html')
+    return render(request, 'wallet/add_bank.html', {'bank_detail': bank_detail})
 
 
 @login_required

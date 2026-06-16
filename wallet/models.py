@@ -169,7 +169,7 @@ class Recharge(models.Model):
             transaction_type='recharge',
             amount=recharge_amount,
             description=f'Recharge approved - UTR: {self.utr_number}{description_addon}',
-            status='completed',
+            status='success',
             reference_id=f'RECHARGE_{self.id}'
         )
         
@@ -297,7 +297,7 @@ class Withdraw(models.Model):
             transaction_type='withdraw',
             amount=self.amount,
             description=f'Withdraw to {self.upi_id} ({self.bank_name})',
-            status='completed',
+            status='success',
             reference_id=f'WITHDRAW_{self.id}'
         )
         
@@ -425,6 +425,7 @@ class Transaction(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
+        ('success', 'Success'),
         ('failed', 'Failed'),
     ]
     
@@ -448,6 +449,24 @@ class Transaction(models.Model):
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    @property
+    def display_status(self):
+        if self.status == 'completed':
+            return 'success'
+        return self.status
+
+    @property
+    def transaction_id(self):
+        return self.reference_id or f"TXN{self.id:06d}"
+
+    @property
+    def date(self):
+        return self.created_at.date()
+
+    @property
+    def time(self):
+        return self.created_at.time()
     
     class Meta:
         ordering = ['-created_at']

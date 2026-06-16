@@ -88,7 +88,7 @@
                         <div class="h-badge deposit-icon">💳</div>
                         <div class="h-info">
                             <div class="h-title">Deposit Request</div>
-                            <div class="h-sub">UTR: {{ r.utr_number }} • {{ r.created_at|date:"d M Y H:i" }}</div>
+                            <div class="h-sub">UTR: {{ r.utr_number }} • ID: RECHARGE_{{ r.id }} • {{ r.created_at|date:"d M Y H:i:s" }}</div>
                         </div>
                         <div class="h-right">
                             <div class="h-amount">₹{{ r.amount }}</div>
@@ -120,7 +120,7 @@
                         <div class="h-badge withdraw-icon">💵</div>
                         <div class="h-info">
                             <div class="h-title">Withdrawal</div>
-                            <div class="h-sub">{{ w.upi_id }} • {{ w.created_at|date:"d M Y H:i" }}</div>
+                            <div class="h-sub">UPI: {{ w.upi_id }} • ID: WITHDRAW_{{ w.id }} • {{ w.created_at|date:"d M Y H:i:s" }}</div>
                         </div>
                         <div class="h-right">
                             <div class="h-amount">₹{{ w.amount }}</div>

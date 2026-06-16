@@ -60,8 +60,14 @@ def get_room_data(request, room_name):
     except GameRoom.DoesNotExist:
         return JsonResponse({'error': 'Room not found'}, status=404)
     
-    # Get or start new game
-    if not room.current_game_start or room.get_time_remaining() <= 0:
+    # Get or start new game if period changed or start is not set
+    now = timezone.localtime(timezone.now())
+    date_str = now.strftime('%Y%m%d')
+    total_seconds_today = now.hour * 3600 + now.minute * 60 + now.second
+    period_index = total_seconds_today // room.duration_seconds + 1
+    expected_period = f"{date_str}{period_index:05d}"
+    
+    if not room.current_game_start or room.current_period != expected_period:
         room.start_new_game()
     
     # Get current game data
@@ -189,13 +195,19 @@ def place_bet(request):
             'error': f'Bet amount must be between ₹{min_bet} and ₹{max_bet}'
         }, status=400)
     
+    # Get or start new game if period changed or start is not set
+    now = timezone.localtime(timezone.now())
+    date_str = now.strftime('%Y%m%d')
+    total_seconds_today = now.hour * 3600 + now.minute * 60 + now.second
+    period_index = total_seconds_today // room.duration_seconds + 1
+    expected_period = f"{date_str}{period_index:05d}"
+    
+    if not room.current_game_start or room.current_period != expected_period:
+        room.start_new_game()
+        
     # Check if betting is open
     if not room.is_betting_open():
         return JsonResponse({'error': 'Betting is closed for this round'}, status=400)
-    
-    # Get current period
-    if not room.current_game_start or room.get_time_remaining() <= 0:
-        room.start_new_game()
     
     period = room.get_current_game_id()
     

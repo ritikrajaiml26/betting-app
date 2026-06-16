@@ -26,11 +26,14 @@
             <div class="wallet-label">Total Balance</div>
             <div class="wallet-balance" id="card-balance">₹{{ wallet.get_total_balance|default:"0.00" }}</div>
             <div class="wallet-actions">
-                <a href="{% url 'recharge' %}" class="wallet-btn">
+                <a href="{% url 'recharge' %}" class="wallet-btn" id="deposit-btn"
+                   style="position:relative; z-index:500; cursor:pointer;"
+                   onclick="window.location.href='{% url 'recharge' %}'; return false;">
                     <span class="wallet-btn-icon">💳</span>
                     <span>Deposit</span>
                 </a>
-                <a href="{% url 'withdraw' %}" class="wallet-btn">
+                <a href="{% url 'withdraw' %}" class="wallet-btn" id="withdraw-btn"
+                   style="position:relative; z-index:500; cursor:pointer;">
                     <span class="wallet-btn-icon">💵</span>
                     <span>Withdraw</span>
                 </a>
@@ -136,7 +139,7 @@
     </nav>
 
     <!-- Bet Modal -->
-    <div class="modal-overlay" id="bet-modal">
+    <div class="modal-overlay" id="bet-modal" style="pointer-events: none;">
         <div class="modal">
             <div class="modal-header">
                 <h3 class="modal-title" id="modal-title">Place Bet</h3>
@@ -171,7 +174,7 @@
     </div>
 
     <!-- Result Popup -->
-    <div class="result-popup" id="result-popup">
+    <div class="result-popup" id="result-popup" style="pointer-events: none;">
         <div class="result-popup-icon" id="result-icon">🎉</div>
         <div class="result-popup-title" id="result-title">Congratulations!</div>
         <div class="result-popup-amount" id="result-amount"></div>
@@ -859,12 +862,14 @@ function checkAndShowResultPopup(period, bets) {
     
     if (wonAny) {
         popup.className = 'result-popup active win';
+        popup.style.pointerEvents = 'auto';
         icon.textContent = '🎉';
         title.textContent = 'Congratulations!';
         amountEl.textContent = `Won ₹${totalWin.toFixed(2)}`;
         amountEl.style.color = 'var(--color-green)';
     } else if (lostAny) {
         popup.className = 'result-popup active lose';
+        popup.style.pointerEvents = 'auto';
         icon.textContent = '😞';
         title.textContent = 'Better Luck Next Time!';
         amountEl.textContent = `Lost ₹${totalBet.toFixed(2)}`;
@@ -877,6 +882,7 @@ function checkAndShowResultPopup(period, bets) {
     
     setTimeout(() => {
         popup.classList.remove('active');
+        popup.style.pointerEvents = 'none';
     }, 4000);
 }
 
@@ -964,13 +970,16 @@ function openBetModal(type, selection) {
     `;
     
     modal.classList.add('active');
+    modal.style.pointerEvents = 'auto';
     betModalOpen = true;
     updatePotentialWin();
 }
 
 // Close bet modal
 function closeBetModal() {
-    document.getElementById('bet-modal').classList.remove('active');
+    const modal = document.getElementById('bet-modal');
+    modal.classList.remove('active');
+    modal.style.pointerEvents = 'none';
     selectedBetType = null;
     selectedSelection = null;
     betModalOpen = false;
@@ -1047,12 +1056,14 @@ function placeBet() {
 function showBetSuccess(message) {
     const popup = document.getElementById('result-popup');
     popup.className = 'result-popup active win';
+    popup.style.pointerEvents = 'auto';
     document.getElementById('result-icon').textContent = '✅';
     document.getElementById('result-title').textContent = 'Bet Placed!';
     document.getElementById('result-amount').textContent = message;
     
     setTimeout(() => {
         popup.classList.remove('active');
+        popup.style.pointerEvents = 'none';
     }, 2000);
 }
 
