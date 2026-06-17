@@ -287,18 +287,14 @@ class Withdraw(models.Model):
         self.processed_at = timezone.now()
         self.save()
         
-        # Deduct from user's winning wallet
-        wallet = Wallet.objects.get(user=self.user)
-        wallet.deduct_from_winning(self.amount)
-        
-        # Create transaction record
-        Transaction.objects.create(
+        # Update transaction status
+        Transaction.objects.filter(
             user=self.user,
             transaction_type='withdraw',
-            amount=self.amount,
-            description=f'Withdraw to {self.upi_id} ({self.bank_name})',
-            status='success',
             reference_id=f'WITHDRAW_{self.id}'
+        ).update(
+            status='success',
+            description=f'Withdraw to {self.upi_id} ({self.bank_name})'
         )
         
         return True
@@ -311,15 +307,19 @@ class Withdraw(models.Model):
         self.rejection_reason = reason
         self.save()
         
-        # Refund is automatic since we only deduct on approval
-        # Create transaction record
-        Transaction.objects.create(
+        # Refund to user's winning wallet (since we deducted immediately on request)
+        wallet, created = Wallet.objects.get_or_create(user=self.user)
+        wallet.winning_balance += self.amount
+        wallet.save()
+        
+        # Update transaction status
+        Transaction.objects.filter(
             user=self.user,
-            transaction_type='withdraw_rejected',
-            amount=self.amount,
-            description=f'Withdraw rejected - {reason} (Amount not deducted)',
-            status='failed',
+            transaction_type='withdraw',
             reference_id=f'WITHDRAW_{self.id}'
+        ).update(
+            status='failed',
+            description=f'Withdraw rejected - {reason} (Refunded to winning wallet)'
         )
         
         return True

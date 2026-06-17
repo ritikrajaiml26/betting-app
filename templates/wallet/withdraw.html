@@ -42,6 +42,15 @@
             </div>
         </div>
         {% else %}
+        {% if limit_reached %}
+        <div class="alert alert-warning">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <div class="alert-title">Daily Limit Reached</div>
+                <div class="alert-message">You have already submitted 3 withdrawal requests today. Please apply after 12:00AM.</div>
+            </div>
+        </div>
+        {% endif %}
         <!-- Withdraw Form -->
         <div class="card">
             <div class="card-header">
@@ -61,13 +70,23 @@
                     <label class="form-label">Amount (₹)</label>
                     <input type="number" id="amount" class="form-control" placeholder="Enter amount" min="50" max="50000">
                     <span class="help-text" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">
-                        * Limit: ₹50 - ₹50,000. Maximum 3 withdrawals per 24 hours.
+                        * Limit: ₹50 - ₹50,000. Maximum 3 withdrawals per day (resets at 12:00AM).
                     </span>
                 </div>
 
-                <button class="btn btn-primary btn-block" onclick="submitWithdraw()" {% if not can_withdraw %}disabled{% endif %}>
+                {% if not can_withdraw %}
+                <button class="btn btn-primary btn-block" disabled>
                     Withdraw
                 </button>
+                {% elif limit_reached %}
+                <button class="btn btn-primary btn-block" disabled style="background-color: #555555; cursor: not-allowed; border-color: #555555;">
+                    apply after 12:00AM
+                </button>
+                {% else %}
+                <button class="btn btn-primary btn-block" onclick="submitWithdraw()">
+                    Withdraw
+                </button>
+                {% endif %}
             </div>
         </div>
         {% endif %}

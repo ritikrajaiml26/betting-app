@@ -79,7 +79,7 @@
                         <div class="tx-subtitle">{{ tx.description }}</div>
                         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
                             ID: <code style="color: var(--text-primary);">{{ tx.transaction_id }}</code> • Status: 
-                            <span style="font-weight: 700; color: {% if tx.display_status == 'success' %}#00E676{% else %}#FF1744{% endif %}; text-transform: uppercase;">
+                            <span style="font-weight: 700; color: {% if tx.display_status == 'success' %}#00E676{% elif tx.display_status == 'pending' %}#FFB800{% else %}#FF1744{% endif %}; text-transform: uppercase;">
                                 {{ tx.display_status }}
                             </span>
                         </div>

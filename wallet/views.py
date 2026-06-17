@@ -64,8 +64,8 @@ def recharge_view(request):
             return JsonResponse({'error': 'Invalid data'}, status=400)
         
         # Validate amount
-        if amount <= 0:
-            return JsonResponse({'error': 'Invalid amount'}, status=400)
+        if amount < 100 or amount > 50000:
+            return JsonResponse({'error': 'Recharge amount must be between ₹100 and ₹50,000'}, status=400)
         
         # Validate UTR
         if not utr_number:
@@ -130,6 +130,16 @@ def withdraw_view(request):
         bank_detail = BankDetail.objects.get(user=request.user)
     except BankDetail.DoesNotExist:
         bank_detail = None
+        
+    # Check daily withdrawal limit (max 3 withdrawals per calendar day in Asia/Kolkata timezone)
+    local_now = timezone.localtime(timezone.now())
+    start_of_today = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    withdrawals_today = Withdraw.objects.filter(
+        user=request.user,
+        created_at__gte=start_of_today
+    ).exclude(status='rejected').count()
+    
+    limit_reached = withdrawals_today >= 3
     
     # Get withdraw history
     withdraws = Withdraw.objects.filter(
@@ -162,17 +172,10 @@ def withdraw_view(request):
         if amount > wallet.winning_balance:
             return JsonResponse({'error': 'Insufficient balance in winning wallet'}, status=400)
             
-        # Check 24-hour withdrawal limit (max 3 withdrawals)
-        from datetime import timedelta
-        time_threshold = timezone.now() - timedelta(hours=24)
-        withdrawals_last_24h = Withdraw.objects.filter(
-            user=request.user,
-            created_at__gte=time_threshold
-        ).exclude(status='rejected').count()
-        
-        if withdrawals_last_24h >= 3:
+        # Check daily limit on POST
+        if limit_reached:
             return JsonResponse({
-                'error': 'You can only make up to 3 withdrawal requests in 24 hours'
+                'error': 'apply after 12:00AM'
             }, status=400)
         
         # Check for pending withdrawals
@@ -186,13 +189,28 @@ def withdraw_view(request):
                 'error': 'You already have a pending withdrawal request'
             }, status=400)
         
-        # Create withdraw request (don't deduct yet - deduct on approval)
+        # Deduct amount immediately from winning wallet
+        wallet.winning_balance -= amount
+        wallet.save()
+        
+        # Create withdraw request
         withdraw = Withdraw.objects.create(
             user=request.user,
             amount=amount,
             upi_id=bank_detail.upi_id,
             bank_name=bank_detail.bank_name,
             account_holder_name=bank_detail.account_holder_name,
+        )
+        
+        # Create transaction record immediately with status 'pending'
+        Transaction.objects.create(
+            user=request.user,
+            transaction_type='withdraw',
+            amount=amount,
+            wallet_type='winning',
+            description=f'Withdraw to {withdraw.upi_id} ({withdraw.bank_name}) - Pending Approval',
+            status='pending',
+            reference_id=f'WITHDRAW_{withdraw.id}'
         )
         
         return JsonResponse({
@@ -206,6 +224,7 @@ def withdraw_view(request):
         'bank_detail': bank_detail,
         'withdraws': withdraws,
         'can_withdraw': request.user.can_withdraw(),
+        'limit_reached': limit_reached,
     }
     
     return render(request, 'wallet/withdraw.html', context)
@@ -306,7 +325,7 @@ def transaction_history(request):
     # Get summary from all transactions before filtering
     summary = {
         'total_recharge': all_transactions.filter(transaction_type='recharge').aggregate(total=Sum('amount'))['total'] or 0,
-        'total_withdraw': all_transactions.filter(transaction_type='withdraw').aggregate(total=Sum('amount'))['total'] or 0,
+        'total_withdraw': all_transactions.filter(transaction_type='withdraw', status='success').aggregate(total=Sum('amount'))['total'] or 0,
         'total_bet': all_transactions.filter(transaction_type='bet').aggregate(total=Sum('amount'))['total'] or 0,
         'total_win': all_transactions.filter(transaction_type='win').aggregate(total=Sum('amount'))['total'] or 0,
     }

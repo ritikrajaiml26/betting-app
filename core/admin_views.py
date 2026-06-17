@@ -286,11 +286,11 @@ def admin_withdraw_update_status(request, withdraw_id):
     if new_status == 'success':
         if withdraw.status != 'success':
             withdraw.approve(request.user)
-            messages.success(request, f"Withdrawal request #{withdraw.id} marked as Success! Winning wallet balance deducted.")
+            messages.success(request, f"Withdrawal request #{withdraw.id} marked as Success! Winning wallet balance was already deducted.")
     elif new_status == 'rejected':
         if withdraw.status != 'success' and withdraw.status != 'rejected':
             withdraw.reject(request.user, reason or "Rejected by admin.")
-            messages.warning(request, f"Withdrawal request #{withdraw.id} marked as Rejected. Refund was not required since deduction happens on success.")
+            messages.warning(request, f"Withdrawal request #{withdraw.id} marked as Rejected. Refunded ₹{withdraw.amount} back to user's winning wallet.")
     else:
         # pending or processing: just update DB status
         withdraw.status = new_status
