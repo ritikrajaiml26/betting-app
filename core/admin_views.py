@@ -363,7 +363,7 @@ def admin_game_control(request):
     # Get recent outcomes for each room
     room_data = []
     for room in rooms:
-        recent_results = GameResult.objects.filter(room=room).order_by('-created_at')[:10]
+        recent_results = GameResult.objects.filter(room=room).order_by('-period')[:10]
         current_period = room.get_current_game_id()
 
         # Calculate bets placed for current active period

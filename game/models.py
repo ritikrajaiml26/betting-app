@@ -144,9 +144,58 @@ class GameRoom(models.Model):
             room.current_game_start = start_time
             room.save()
             
-            # Settle the old period
+            # Settle the old period and generate intermediate results
             if old_period:
+                from datetime import datetime as dt_class
+                import datetime as dt_module
+                
+                try:
+                    old_date = dt_class.strptime(old_period[:8], '%Y%m%d').date()
+                    old_idx = int(old_period[8:])
+                    new_date = dt_class.strptime(new_period[:8], '%Y%m%d').date()
+                    new_idx = int(new_period[8:])
+                    
+                    duration = room.duration_seconds
+                    max_idx = 86400 // duration
+                    
+                    days_diff = (new_date - old_date).days
+                    total_gap = 0
+                    if days_diff == 0:
+                        total_gap = new_idx - old_idx - 1
+                    elif days_diff > 0:
+                        total_gap = (max_idx - old_idx) + ((days_diff - 1) * max_idx) + (new_idx - 1)
+                    
+                    intermediate_periods = []
+                    if total_gap > 0:
+                        if total_gap > 50:
+                            # Limit to generating the last 50 missing periods to avoid database overhead
+                            curr_idx = new_idx - 1
+                            curr_dt = new_date
+                            for _ in range(50):
+                                if curr_idx < 1:
+                                    curr_dt = curr_dt - dt_module.timedelta(days=1)
+                                    curr_idx = max_idx
+                                intermediate_periods.append(f"{curr_dt.strftime('%Y%m%d')}{curr_idx:05d}")
+                                curr_idx -= 1
+                            intermediate_periods.reverse()
+                        else:
+                            curr_dt = old_date
+                            curr_idx = old_idx + 1
+                            while len(intermediate_periods) < total_gap:
+                                if curr_idx > max_idx:
+                                    curr_dt = curr_dt + dt_module.timedelta(days=1)
+                                    curr_idx = 1
+                                intermediate_periods.append(f"{curr_dt.strftime('%Y%m%d')}{curr_idx:05d}")
+                                curr_idx += 1
+                except Exception:
+                    intermediate_periods = []
+                
+                # Settle the main old period first
                 room.settle_game_period(old_period)
+                
+                # Settle all intermediate periods so they appear in history
+                for p in intermediate_periods:
+                    room.settle_game_period(p)
                 
             # Settle any other older pending periods that need settlement
             from game.models import Bet
@@ -219,6 +268,28 @@ class GameRoom(models.Model):
         result.total_win_amount = total_wins
         result.platform_profit = total_bets - total_wins
         result.save()
+        
+        # Calculate and set the exact end time for created_at to keep game history times sequential
+        try:
+            from datetime import datetime as dt_class
+            import datetime as dt_module
+            from django.utils import timezone
+            
+            period_date = dt_class.strptime(period[:8], '%Y%m%d').date()
+            period_index = int(period[8:])
+            
+            period_end_seconds = period_index * self.duration_seconds
+            period_date_datetime = timezone.make_aware(
+                dt_class.combine(period_date, dt_class.min.time()),
+                timezone.get_current_timezone()
+            )
+            exact_end_time = period_date_datetime + dt_module.timedelta(seconds=period_end_seconds)
+            
+            # Bypassing auto_now_add using update()
+            GameResult.objects.filter(id=result.id).update(created_at=exact_end_time)
+            result.created_at = exact_end_time
+        except Exception:
+            pass
 
 
 
@@ -245,7 +316,7 @@ class GameResult(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-period']
         unique_together = ['room', 'period']
         verbose_name_plural = 'Game Results'
     

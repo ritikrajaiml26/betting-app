@@ -31,7 +31,7 @@ def home_view(request):
     for room in game_rooms:
         recent_results[room.name] = GameResult.objects.filter(
             room=room
-        ).order_by('-created_at')[:10]
+        ).order_by('-period')[:10]
     
     # Get user's recent bets
     user_bets = Bet.objects.filter(
@@ -78,7 +78,7 @@ def get_room_data(request, room_name):
     # Get recent results
     recent_results = GameResult.objects.filter(
         room=room
-    ).order_by('-created_at')[:20]
+    ).order_by('-period')[:20]
     
     results_data = []
     for result in recent_results:
@@ -305,7 +305,7 @@ def game_history(request):
     # Get game results
     results = GameResult.objects.filter(
         room=room
-    ).order_by('-created_at')[:50]
+    ).order_by('-period')[:50]
     
     context = {
         'room': room,
