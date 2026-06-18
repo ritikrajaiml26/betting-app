@@ -234,3 +234,65 @@ class AdminProfile(models.Model):
     
     def __str__(self):
         return f"Admin: {self.user.username}"
+
+
+class SupportTicket(models.Model):
+    """Model for user support / help tickets"""
+
+    CATEGORY_CHOICES = [
+        ('game_problem', '🎮 Game Problem'),
+        ('recharge_problem', '💳 Recharge Problem'),
+        ('withdrawal_problem', '💵 Withdrawal Problem'),
+        ('account_problem', '👤 Account Problem'),
+        ('other', '📋 Other'),
+    ]
+
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='support_tickets')
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES)
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+
+    # Admin reply
+    admin_reply = models.TextField(blank=True, null=True)
+    replied_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='replied_tickets',
+        limit_choices_to={'is_staff': True}
+    )
+    replied_at = models.DateTimeField(null=True, blank=True)
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'Support Tickets'
+
+    def __str__(self):
+        return f"Ticket #{self.id} - {self.user.username} - {self.get_category_display()} ({self.status})"
+
+    @property
+    def is_resolved(self):
+        return self.status in ['resolved', 'closed']
+
+    @property
+    def status_color(self):
+        colors = {
+            'open': '#FFB800',
+            'in_progress': '#6C63FF',
+            'resolved': '#00C853',
+            'closed': '#999999',
+        }
+        return colors.get(self.status, '#FFB800')

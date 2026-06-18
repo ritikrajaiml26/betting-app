@@ -195,119 +195,51 @@ def logout_view(request):
 
 
 def forgot_password_view(request):
-    """Forgot password view - send OTP to email"""
+    """Forgot password - verify email + mobile, then reset password directly"""
     if request.user.is_authenticated:
         return redirect('home')
     
     if request.method == 'POST':
-        email = request.POST.get('email', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        mobile = request.POST.get('mobile', '').strip()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
         
-        if not email:
-            messages.error(request, 'Please enter your email address')
+        # Validate all fields
+        if not email or not mobile or not password or not confirm_password:
+            messages.error(request, 'All fields are required')
             return render(request, 'core/forgot_password.html')
         
+        if len(password) < 6:
+            messages.error(request, 'Password must be at least 6 characters')
+            return render(request, 'core/forgot_password.html')
+        
+        if password != confirm_password:
+            messages.error(request, 'Passwords do not match')
+            return render(request, 'core/forgot_password.html')
+        
+        # Check if user exists with both email AND mobile matching
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email__iexact=email, mobile=mobile)
         except User.DoesNotExist:
-            messages.error(request, 'Email not registered')
+            messages.error(request, 'No account found with this registered email and mobile number')
             return render(request, 'core/forgot_password.html')
         
-        # Generate OTP
-        otp_code = OTP.generate_otp()
+        # Reset password
+        user.set_password(password)
+        user.save()
         
-        # Create OTP record
-        otp = OTP.objects.create(
-            user=user,
-            otp=otp_code,
-            expires_at=timezone.now() + timedelta(minutes=10)
-        )
-        
-        # Send email (in production, configure email settings)
-        try:
-            send_mail(
-                'Password Reset OTP - Color Prediction',
-                f'Your OTP for password reset is: {otp_code}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore.',
-                settings.EMAIL_HOST_USER or 'noreply@colorprediction.com',
-                [email],
-                fail_silently=True,  # Don't fail if email not configured
-            )
-        except:
-            pass  # Email might not be configured
-        
-        # For development, show OTP in message
-        messages.success(request, f'OTP sent to your email. (Demo OTP: {otp_code})')
-        return redirect('verify_otp', otp_id=otp.id)
+        messages.success(request, 'Password changed successfully! Please login with your new password.')
+        return redirect('login')
     
     return render(request, 'core/forgot_password.html')
 
 
 def verify_otp_view(request, otp_id):
-    """Verify OTP and allow password reset"""
-    if request.user.is_authenticated:
-        return redirect('home')
-    
-    try:
-        otp = OTP.objects.get(id=otp_id)
-    except OTP.DoesNotExist:
-        messages.error(request, 'Invalid OTP request')
-        return redirect('forgot_password')
-    
-    if otp.is_used:
-        messages.error(request, 'OTP already used')
-        return redirect('forgot_password')
-    
-    if not otp.is_valid():
-        messages.error(request, 'OTP expired')
-        return redirect('forgot_password')
-    
-    if request.method == 'POST':
-        entered_otp = request.POST.get('otp', '')
-        
-        if entered_otp == otp.otp:
-            # OTP verified, mark as used
-            otp.is_used = True
-            otp.save()
-            
-            # Show password reset form
-            return render(request, 'core/reset_password.html', {'otp_id': otp_id})
-        else:
-            messages.error(request, 'Invalid OTP')
-    
-    return render(request, 'core/verify_otp.html', {'otp_id': otp_id})
+    """Redirect old OTP verify URL to forgot password"""
+    return redirect('forgot_password')
 
 
 def reset_password_view(request, otp_id):
-    """Reset password after OTP verification"""
-    if request.user.is_authenticated:
-        return redirect('home')
-    
-    try:
-        otp = OTP.objects.get(id=otp_id)
-    except OTP.DoesNotExist:
-        messages.error(request, 'Invalid request')
-        return redirect('forgot_password')
-    
-    if not otp.is_used:
-        messages.error(request, 'Please verify OTP first')
-        return redirect('verify_otp', otp_id=otp_id)
-    
-    if request.method == 'POST':
-        password = request.POST.get('password', '')
-        confirm_password = request.POST.get('confirm_password', '')
-        
-        if len(password) < 6:
-            messages.error(request, 'Password must be at least 6 characters')
-            return redirect('reset_password', otp_id=otp_id)
-        
-        if password != confirm_password:
-            messages.error(request, 'Passwords do not match')
-            return redirect('reset_password', otp_id=otp_id)
-        
-        # Set new password
-        otp.user.set_password(password)
-        otp.user.save()
-        
-        messages.success(request, 'Password reset successful! Please login.')
-        return redirect('login')
-    
-    return redirect('verify_otp', otp_id=otp_id)
+    """Redirect old reset password URL to forgot password"""
+    return redirect('forgot_password')

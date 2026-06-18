@@ -54,11 +54,19 @@
     </div>
     <div class="stat-card">
         <div class="stat-info">
+            <span class="stat-label">Pending Tickets</span>
+            <span class="stat-value" style="color: var(--secondary);">{{ pending_tickets }}</span>
+        </div>
+        <div class="stat-icon success">💬</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-info">
             <span class="stat-label">Blocked Accounts</span>
             <span class="stat-value" style="color: var(--color-red);">{{ blocked_users }}</span>
         </div>
         <div class="stat-icon danger">🚫</div>
     </div>
+
     <div class="stat-card">
         <div class="stat-info">
             <span class="stat-label">Total Admins</span>
@@ -147,7 +155,54 @@
     </div>
 </div>
 
+<!-- Recent Support Tickets -->
+<div class="card mt-4">
+    <div class="card-header">
+        <span class="card-title">Recent Support Tickets</span>
+        <a href="{% url 'admin_support_tickets' %}" class="btn btn-sm btn-primary">View All</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Ticket ID</th>
+                    <th>User</th>
+                    <th>Category</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Submitted At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in recent_tickets %}
+                <tr>
+                    <td>#TKT-{{ t.id }}</td>
+                    <td><strong>{{ t.user.username }}</strong><br><small style="color: var(--text-secondary);">{{ t.user.mobile }}</small></td>
+                    <td><span style="color: var(--primary); font-weight: 600;">{{ t.get_category_display }}</span></td>
+                    <td>{{ t.subject|truncatechars:40 }}</td>
+                    <td>
+                        <span class="badge" style="background: {{ t.status_color }}18; color: {{ t.status_color }}; border: 1px solid {{ t.status_color }}33;">
+                            {{ t.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ t.created_at|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'admin_support_ticket_detail' t.id %}" class="btn btn-xs btn-primary">Reply</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary);">No support tickets submitted yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- All Users & Admins Details -->
+
 <div class="card mt-4">
     <div class="card-header">
         <span class="card-title">Registered Users Details (Total: {{ total_users }})</span>

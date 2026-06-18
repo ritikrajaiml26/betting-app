@@ -152,7 +152,24 @@
             {% endif %}
         </div>
 
+        <!-- Support Card -->
+        <div class="card mt-3">
+            <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                <span class="card-title">Help & Support</span>
+            </div>
+            <div class="card-body" style="padding: var(--spacing-md) 0 0 0;">
+                <a href="{% url 'support_tickets' %}" class="feature-box" style="margin: 0; width: 100%; box-sizing: border-box; justify-content: flex-start; display: flex; align-items: center; gap: var(--spacing-md); text-decoration: none; background: rgba(255,255,255,0.02); border-radius: var(--radius-lg); padding: var(--spacing-md); border: 1px solid rgba(255,255,255,0.05);">
+                    <div class="feature-icon primary" style="background: rgba(108, 99, 255, 0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">💬</div>
+                    <div class="feature-text">
+                        <div class="feature-title" style="font-weight: 600; color: var(--text-primary);">Customer Support</div>
+                        <div class="feature-subtitle" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Game, Recharge & Withdraw problems</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
         <!-- Logout Card -->
+
         <div class="card mt-3" style="border: 1px solid rgba(255, 23, 68, 0.2); background: rgba(255, 23, 68, 0.03); margin-bottom: var(--spacing-xl);">
             <div class="card-body" style="padding: var(--spacing-md);">
                 <a href="{% url 'logout' %}" onclick="return confirm('Do you want to logout?')" style="background: var(--color-red); border-color: var(--color-red); color: white; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; padding: 12px; border-radius: var(--radius-md); text-decoration: none; transition: all var(--transition-fast);">

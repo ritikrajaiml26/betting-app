@@ -6,7 +6,8 @@ from django.db.models import Sum, Q, Count
 from django.utils import timezone
 from decimal import Decimal
 
-from core.models import User, PaymentSettings
+from core.models import User, PaymentSettings, SupportTicket
+
 from wallet.models import Wallet, Recharge, Withdraw, Transaction, BankDetail
 from game.models import GameRoom, GameResult, Bet
 
@@ -41,6 +42,7 @@ def admin_dashboard(request):
     # Pending requests count
     pending_recharges = Recharge.objects.filter(status='pending').count()
     pending_withdraws = Withdraw.objects.filter(status__in=['pending', 'processing']).count()
+    pending_tickets = SupportTicket.objects.filter(status__in=['open', 'in_progress']).count()
     
     # Game rooms
     rooms = GameRoom.objects.all()
@@ -48,6 +50,7 @@ def admin_dashboard(request):
     # Recent activity
     recent_recharges = Recharge.objects.all().order_by('-created_at')[:5]
     recent_withdraws = Withdraw.objects.all().order_by('-created_at')[:5]
+    recent_tickets = SupportTicket.objects.all().order_by('-created_at')[:5]
     
     # Detailed lists
     all_users = User.objects.filter(is_superuser=False, is_staff=False).order_by('-created_at')
@@ -62,13 +65,16 @@ def admin_dashboard(request):
         'platform_total_balance': platform_total_balance,
         'pending_recharges': pending_recharges,
         'pending_withdraws': pending_withdraws,
+        'pending_tickets': pending_tickets,
         'rooms': rooms,
         'recent_recharges': recent_recharges,
         'recent_withdraws': recent_withdraws,
+        'recent_tickets': recent_tickets,
         'all_users': all_users,
         'all_admins': all_admins,
     }
     return render(request, 'admin_custom/dashboard.html', context)
+
 
 
 @admin_required
@@ -448,3 +454,75 @@ def admin_payment_settings(request):
         'settings': settings_obj,
     }
     return render(request, 'admin_custom/payment_settings.html', context)
+
+
+@admin_required
+def admin_support_tickets(request):
+    """View and filter all user support tickets."""
+    status_filter = request.GET.get('status', '').strip()
+    category_filter = request.GET.get('category', '').strip()
+    query = request.GET.get('q', '').strip()
+    
+    tickets_qs = SupportTicket.objects.all()
+    
+    if status_filter:
+        tickets_qs = tickets_qs.filter(status=status_filter)
+    if category_filter:
+        tickets_qs = tickets_qs.filter(category=category_filter)
+    if query:
+        tickets_qs = tickets_qs.filter(
+            Q(id__icontains=query.replace('#TKT-', '')) |
+            Q(subject__icontains=query) |
+            Q(message__icontains=query) |
+            Q(user__username__icontains=query) |
+            Q(user__mobile__icontains=query)
+        )
+        
+    # Split into active (open, in_progress) and completed (resolved, closed)
+    active_tickets = tickets_qs.filter(status__in=['open', 'in_progress']).order_by('-created_at')
+    completed_tickets = tickets_qs.filter(status__in=['resolved', 'closed']).order_by('-created_at')[:100]
+    
+    context = {
+        'active_tickets': active_tickets,
+        'completed_tickets': completed_tickets,
+        'status_choices': SupportTicket.STATUS_CHOICES,
+        'category_choices': SupportTicket.CATEGORY_CHOICES,
+        'status_filter': status_filter,
+        'category_filter': category_filter,
+        'query': query,
+    }
+    return render(request, 'admin_custom/support_tickets.html', context)
+
+
+@admin_required
+def admin_support_ticket_detail(request, ticket_id):
+    """View ticket details and reply to the user."""
+    ticket = get_object_or_404(SupportTicket, id=ticket_id)
+    
+    if request.method == 'POST':
+        admin_reply = request.POST.get('admin_reply', '').strip()
+        status = request.POST.get('status', '').strip()
+        
+        if not admin_reply:
+            messages.error(request, "Reply text is required.")
+            return redirect('admin_support_ticket_detail', ticket_id=ticket.id)
+            
+        if status not in [s[0] for s in SupportTicket.STATUS_CHOICES]:
+            messages.error(request, "Invalid status choice.")
+            return redirect('admin_support_ticket_detail', ticket_id=ticket.id)
+            
+        ticket.admin_reply = admin_reply
+        ticket.status = status
+        ticket.replied_by = request.user
+        ticket.replied_at = timezone.now()
+        ticket.save()
+        
+        messages.success(request, f"Reply successfully sent for Ticket #{ticket.id} and status updated to {status.upper()}.")
+        return redirect('admin_support_tickets')
+        
+    context = {
+        'ticket': ticket,
+        'status_choices': SupportTicket.STATUS_CHOICES,
+    }
+    return render(request, 'admin_custom/support_ticket_detail.html', context)
+

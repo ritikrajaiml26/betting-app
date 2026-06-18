@@ -25,4 +25,6 @@ urlpatterns = [
     path('admin-dashboard/game-control/', admin_views.admin_game_control, name='admin_game_control'),
     path('admin-dashboard/game-control/preset/', admin_views.admin_game_preset_result, name='admin_game_preset_result'),
     path('admin-dashboard/payment-settings/', admin_views.admin_payment_settings, name='admin_payment_settings'),
-]
+    path('admin-dashboard/support-tickets/', admin_views.admin_support_tickets, name='admin_support_tickets'),
+    path('admin-dashboard/support-tickets/<int:ticket_id>/', admin_views.admin_support_ticket_detail, name='admin_support_ticket_detail'),
+]

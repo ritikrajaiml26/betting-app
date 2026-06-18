@@ -1,0 +1,183 @@
+{% extends 'admin_custom/base_admin.html' %}
+
+{% block title %}Reply to Ticket #{{ ticket.id }}{% endblock %}
+{% block page_title %}Ticket Response Workspace{% endblock %}
+{% block nav_support %}active{% endblock %}
+
+{% block admin_content %}
+<div style="margin-bottom: 20px;">
+    <a href="{% url 'admin_support_tickets' %}" class="btn" style="background: rgba(255,255,255,0.05); color: var(--text-main);">
+        ← Back to Support List
+    </a>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start;">
+    
+    <!-- Left Column: Ticket details and reply form -->
+    <div>
+        <!-- Ticket Information -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Ticket details #TKT-{{ ticket.id }}</span>
+                <span class="badge" style="background: {{ ticket.status_color }}18; color: {{ ticket.status_color }}; border: 1px solid {{ ticket.status_color }}33;">
+                    {{ ticket.get_status_display }}
+                </span>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label class="form-label" style="font-size: 0.8rem; text-transform: uppercase;">Subject</label>
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; margin-top: 4px;">{{ ticket.subject }}</h3>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label class="form-label" style="font-size: 0.8rem; text-transform: uppercase;">Category</label>
+                <div style="color: var(--primary); font-weight: 700; font-size: 0.95rem; margin-top: 4px;">
+                    {{ ticket.get_category_display }}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <label class="form-label" style="font-size: 0.8rem; text-transform: uppercase;">User Explanation Note</label>
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; line-height: 1.6; font-size: 0.95rem; word-break: break-word; color: var(--text-main); margin-top: 4px;">
+                    {{ ticket.message|linebreaks }}
+                </div>
+            </div>
+            
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                Submitted on: <strong>{{ ticket.created_at|date:"M d, Y H:i" }}</strong>
+            </div>
+        </div>
+
+        <!-- Admin Response Form -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Compose Reply</span>
+            </div>
+            
+            <form action="{% url 'admin_support_ticket_detail' ticket.id %}" method="POST">
+                {% csrf_token %}
+                
+                <!-- Reply Box -->
+                <div class="form-group">
+                    <label class="form-label" for="admin_reply">Write note/solution to user</label>
+                    <textarea id="admin_reply" name="admin_reply" rows="8" class="form-control" placeholder="Write your reply here..." required>{{ ticket.admin_reply|default:'' }}</textarea>
+                </div>
+
+                <!-- Update Status -->
+                <div class="form-group" style="width: 250px;">
+                    <label class="form-label" for="status">Update Ticket Status</label>
+                    <select id="status" name="status" class="form-control">
+                        {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if ticket.status == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-size: 0.95rem;">
+                        ✉️ Send Reply & Update Ticket
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column: User Account Information Card -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">User Account Info</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.85rem; color: var(--text-secondary);">
+                
+                <div>
+                    <span style="display: block; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Full Name</span>
+                    <strong style="color: var(--text-main); font-size: 0.95rem;">{{ ticket.user.name }}</strong>
+                </div>
+
+                <div>
+                    <span style="display: block; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Username</span>
+                    <strong style="color: var(--text-main);">{{ ticket.user.username }}</strong>
+                </div>
+
+                <div>
+                    <span style="display: block; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">User UID</span>
+                    <strong style="color: var(--text-main);">#{{ ticket.user.uid }}</strong>
+                </div>
+
+                <div>
+                    <span style="display: block; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Mobile Number</span>
+                    <strong style="color: var(--text-main);">{{ ticket.user.mobile }}</strong>
+                </div>
+
+                <div>
+                    <span style="display: block; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Email Address</span>
+                    <strong style="color: var(--text-main);">{{ ticket.user.email }}</strong>
+                </div>
+
+                <div>
+                    <span style="display: block; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Status</span>
+                    {% if ticket.user.is_blocked %}
+                    <span class="badge badge-danger">Blocked</span>
+                    {% else %}
+                    <span class="badge badge-success">Active</span>
+                    {% endif %}
+                </div>
+
+                <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 4px;">
+                    <span style="display: block; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Wallet Balances</span>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>Deposit:</span>
+                        <strong style="color: var(--text-main);">₹{{ ticket.user.wallet.deposit_balance|default:"0.00" }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>Winning:</span>
+                        <strong style="color: var(--color-green);">₹{{ ticket.user.wallet.winning_balance|default:"0.00" }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Bonus:</span>
+                        <strong style="color: var(--color-warning);">₹{{ ticket.user.wallet.bonus_balance|default:"0.00" }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 8px; font-weight: 700;">
+                        <span>Total:</span>
+                        <span style="color: var(--text-main);">₹{{ ticket.user.get_total_balance|default:"0.00" }}</span>
+                    </div>
+                </div>
+                
+                <div style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{% url 'admin_user_detail' ticket.user.id %}" class="btn btn-sm btn-primary btn-block">
+                        🔍 Inspect User Profile
+                    </a>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- Previous tickets by same user -->
+        {% if ticket.user.support_tickets.count > 1 %}
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">User's Other Tickets</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.8rem;">
+                {% for t in ticket.user.support_tickets.all %}
+                    {% if t.id != ticket.id %}
+                    <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <a href="{% url 'admin_support_ticket_detail' t.id %}" style="color: var(--primary); text-decoration: none; font-weight: 600;">#TKT-{{ t.id }}</a>
+                            <span class="badge" style="font-size: 0.6rem; padding: 2px 4px; background: {{ t.status_color }}18; color: {{ t.status_color }};">{{ t.get_status_display }}</span>
+                        </div>
+                        <div style="color: var(--text-main); font-weight: 500;">{{ t.subject|truncatechars:30 }}</div>
+                        <div style="color: var(--text-secondary); font-size: 0.7rem; margin-top: 2px;">{{ t.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

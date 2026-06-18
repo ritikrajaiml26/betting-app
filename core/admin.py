@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import User, OTP, SiteSetting, AdminProfile
+from .models import User, OTP, SiteSetting, AdminProfile, SupportTicket
+
 
 
 @admin.register(User)
@@ -68,3 +69,11 @@ class SiteSettingAdmin(admin.ModelAdmin):
 class AdminProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'can_manage_users', 'can_manage_games', 'can_manage_wallet', 'can_view_reports')
     list_filter = ('can_manage_users', 'can_manage_games', 'can_manage_wallet', 'can_view_reports')
+
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'category', 'status', 'subject', 'created_at', 'replied_at')
+    list_filter = ('status', 'category', 'created_at')
+    search_fields = ('user__username', 'user__mobile', 'subject', 'message')
+    readonly_fields = ('created_at', 'updated_at')

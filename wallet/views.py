@@ -10,6 +10,8 @@ import json
 
 from .models import Wallet, Recharge, Withdraw, BankDetail, Transaction, ReferralCommission
 from django.conf import settings
+from core.models import SupportTicket
+
 
 
 @login_required
@@ -449,3 +451,51 @@ def referral_dashboard(request):
     }
     
     return render(request, 'wallet/referral_dashboard.html', context)
+
+
+@login_required
+def support_tickets(request):
+    """User support tickets list and creation page"""
+    if request.method == 'POST':
+        category = request.POST.get('category', '').strip()
+        subject = request.POST.get('subject', '').strip()
+        message = request.POST.get('message', '').strip()
+        
+        if not category or not subject or not message:
+            messages.error(request, 'All fields are required.')
+            return redirect('support_tickets')
+            
+        valid_categories = [c[0] for c in SupportTicket.CATEGORY_CHOICES]
+        if category not in valid_categories:
+            messages.error(request, 'Invalid category selected.')
+            return redirect('support_tickets')
+            
+        SupportTicket.objects.create(
+            user=request.user,
+            category=category,
+            subject=subject,
+            message=message,
+            status='open'
+        )
+        messages.success(request, 'Support ticket submitted successfully! Admin will respond soon.')
+        return redirect('support_tickets')
+        
+    # GET: fetch user's tickets
+    tickets = SupportTicket.objects.filter(user=request.user).order_by('-created_at')
+    categories = SupportTicket.CATEGORY_CHOICES
+    
+    context = {
+        'tickets': tickets,
+        'categories': categories,
+    }
+    return render(request, 'wallet/support.html', context)
+
+
+@login_required
+def support_ticket_detail(request, ticket_id):
+    """User support ticket detail view"""
+    ticket = get_object_or_404(SupportTicket, id=ticket_id, user=request.user)
+    context = {
+        'ticket': ticket,
+    }
+    return render(request, 'wallet/support_detail.html', context)

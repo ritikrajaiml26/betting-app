@@ -508,9 +508,13 @@
             <li class="menu-item {% block nav_withdraws %}{% endblock %}">
                 <a href="{% url 'admin_withdraws' %}">💵 Withdrawals</a>
             </li>
+            <li class="menu-item {% block nav_support %}{% endblock %}">
+                <a href="{% url 'admin_support_tickets' %}">💬 Support Tickets</a>
+            </li>
             <li class="menu-item {% block nav_game %}{% endblock %}">
                 <a href="{% url 'admin_game_control' %}">⚙️ Game Control</a>
             </li>
+
             <li class="menu-item {% block nav_payment %}{% endblock %}">
                 <a href="{% url 'admin_payment_settings' %}">💳 Payment Settings</a>
             </li>

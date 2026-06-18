@@ -10,4 +10,6 @@ urlpatterns = [
     path('transactions/', views.transaction_history, name='transaction_history'),
     path('history/', views.unified_history, name='unified_history'),
     path('referrals/', views.referral_dashboard, name='referral_dashboard'),
-]
+    path('support/', views.support_tickets, name='support_tickets'),
+    path('support/<int:ticket_id>/', views.support_ticket_detail, name='support_ticket_detail'),
+]
