@@ -54,11 +54,13 @@
                 </p>
                 <div class="upi-id">{{ admin_upi }}</div>
             </div>
+            {% if is_first_recharge %}
             <div class="card-body" style="padding-top: 0;">
                 <p class="text-muted text-center" style="font-size: 0.85rem; margin-bottom: 0; color: var(--color-green); font-weight: 600;">
                     🔥 First recharge gets 20% extra deposit balance!
                 </p>
             </div>
+            {% endif %}
         </div>
 
         <!-- Step 3: Submit UTR (Hidden initially) -->

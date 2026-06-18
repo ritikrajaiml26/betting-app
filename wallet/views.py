@@ -108,6 +108,7 @@ def recharge_view(request):
         'pending_recharges': pending_recharges,
         'approved_recharges': approved_recharges,
         'payment_settings': payment_settings,
+        'is_first_recharge': not Recharge.objects.filter(user=request.user, status='approved').exists(),
         # Legacy keys kept for backward compatibility with old templates
         'admin_upi': payment_settings.admin_upi_id,
         'admin_qr': payment_settings.admin_qr_image.url if payment_settings.admin_qr_image else '',
